@@ -395,7 +395,11 @@ function drawScene(t){
     for(let i=0;i<18;i++){ctx.fillStyle=['#ffcf85','#d4efca','#f2aac1','#d9d4f5'][i%4];ctx.save();ctx.translate(90+(i*73)%777,120+(i*113)%320);ctx.rotate(t/1000+i);ctx.fillRect(-5,-3,10,6);ctx.restore();}
   }
   if(s.stage!==3){wall(EXIT_TOP);wall(EXIT_BOTTOM);if(!s.latch && (s.stage!==1||!s.keyTaken))drawGate(828,222,108,false);else drawGate(828,222,108,true);exitDoor(s.latch||s.keyTaken);}
-  for(const p of s.players)kiwi(p,t);
+  // Always render the local player, even if a state packet temporarily omits it.
+  const visiblePlayers = Array.isArray(s.players) ? s.players : [];
+  const localPlayer = visiblePlayers.find(p => String(p.id) === String(myId));
+  for(const p of visiblePlayers)kiwi(p,t);
+  if(!localPlayer && myId)kiwi({id:myId,x:142,y:247,name:playerName,color:'#d4b488'},t);
   if(s.players.length<2&&s.stage<3){roundRect(275,459,410,29,11,'#3c5e48d9');text('다른 플레이어가 참가하면 진행할 수 있습니다.',480,473,14,'#f8ffe9');}
 }
 requestAnimationFrame(drawScene);
