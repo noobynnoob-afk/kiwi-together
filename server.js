@@ -183,7 +183,7 @@ function disconnect(ws){
   room.players.delete(ws.pid);
   if(room.keyOwner===ws.pid){room.keyOwner=null;room.keyTaken=false;}
   if(room.players.size===0)rooms.delete(room.id);
-  else announce(room,p.name+'이(가) 방에서 나갔어.');
+  else announce(room,p.name+'님이 퇴장했습니다.');
   ws.room=null;
 }
 wss.on('connection',(ws)=>{
@@ -196,15 +196,15 @@ wss.on('connection',(ws)=>{
     if(m.type==='join'&&!ws.room){
       const request=String(m.room||'').toUpperCase().replace(/[^A-Z2-9]/g,'').slice(0,5);
       let room;
-      if(request){room=rooms.get(request);if(!room){send(ws,{type:'error',text:'그 방 코드가 없어. 새 방을 만들거나 코드를 다시 확인해줘!'});return;}}
+      if(request){room=rooms.get(request);if(!room){send(ws,{type:'error',text:'해당 방을 찾을 수 없습니다. 코드를 확인하세요.'});return;}}
       else room=createRoom();
-      if(room.players.size>=4){send(ws,{type:'error',text:'방이 꽉 찼어! 최대 4마리까지 가능해.'});return;}
+      if(room.players.size>=4){send(ws,{type:'error',text:'참가 인원은 최대 4명입니다.'});return;}
       const id=crypto.randomUUID();
       const color=['#d4b488','#cbb0f1','#9fd3b2','#f3ad98'][room.players.size%4];
       const p={id,name:cleanName(m.name),x:142+(room.players.size%2)*56,y:247+Math.floor(room.players.size/2)*58,dx:0,dy:0,color,ws,lastChat:0,chatWindow:[],lastEmoji:0};
       room.players.set(id,p);ws.room=room;ws.pid=id;
       send(ws,{type:'welcome',id,room:room.id});
-      announce(room,p.name+'이(가) 합류했어! ('+room.players.size+'/4)');
+      announce(room,p.name+'님이 참가했습니다. ('+room.players.size+'/4)');
       send(ws,packState(room));
       return;
     }
@@ -230,7 +230,7 @@ wss.on('connection',(ws)=>{
       broadcast(room,{type:'bubble',id:p.id,text:options[i]});
     }else if(m.type==='reset'){
       if(room.stage===3)resetStage(room,0);else resetStage(room);
-      announce(room,p.name+'이(가) 퍼즐을 다시 시작했어!');
+      announce(room,p.name+'님이 퍼즐을 초기화했습니다.');
     }
   });
   ws.on('close',()=>disconnect(ws));

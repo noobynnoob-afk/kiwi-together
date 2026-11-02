@@ -38,6 +38,45 @@
 @media(max-width:740px){#game{padding:8px;gap:8px}.topbar{min-height:62px;border-radius:12px;gap:7px;padding:9px}.topLogo small{display:none}.topLogo .disc{height:30px;width:30px;font-size:20px}.topLogo strong{font-size:16px}.roomStrip{gap:5px}.chip{padding:6px;font-size:10px;border-width:1px}.chip b{font-size:13px}.smallBtn{padding:8px;font-size:11px}.roomStrip #resetBtn{display:none}.gameLayout{display:block}.stageBar{padding:10px 12px;min-height:58px}.stageBar h2{font-size:17px}.stageBar p{font-size:11px}.gameStats{font-size:11px}.gameStats b{font-size:15px}.canvasBox{border-width:3px;border-radius:13px}.hint{padding:11px;font-size:12px}.chatPanel{display:none;position:fixed;z-index:10;left:8px;right:8px;top:16%;height:70dvh;min-height:0;border:3px solid #fff;box-shadow:0 0 0 200vmax #071912a8,0 15px 40px #0009}.chatPanel.open{display:flex}#chatToggle{display:block}.menuCard{padding:27px 22px}.brandLogo{font-size:35px}.bigKiwi{transform:scale(.85)}#joystick,#mobileEmote,#mobileChat{display:block}#mobileChat{display:none}.canvasBox{min-height:0}.canvasBox #joystick{width:96px;height:96px;left:12px;bottom:10px}#stick{left:25px;top:25px;width:40px;height:40px}#mobileEmote{right:13px;bottom:11px;width:53px;height:53px;font-size:19px}.chatTop{padding:13px 15px}.chatTop button{display:block!important}}
 @media(hover:none) and (pointer:coarse){#joystick,#mobileEmote{display:block}}
 @media(max-width:440px){.menuCard{border-width:3px}.brandHead{gap:2px}.brandLogo{font-size:30px}.brandSub{letter-spacing:1.8px}.topLogo .disc{display:none}.topLogo strong{font-size:14px}.roomStrip #leaveBtn{display:none}.stageBar p{max-width:260px}.hint{align-items:flex-start}.hint .right{display:none}}
+
+/* Full-viewport game layout */
+html,body{height:100%;overflow-x:hidden}
+#game{width:100%;max-width:none;height:100dvh;min-height:0;margin:0;padding:8px;gap:7px;overflow:hidden}
+.topbar{min-height:52px;flex-shrink:0;padding:7px 13px;border-radius:7px}
+.gameLayout{flex:1;min-height:0;align-items:stretch;grid-template-columns:minmax(0,1fr) minmax(240px,290px);gap:8px}
+.playColumn{min-height:0;gap:7px}
+.stageBar{min-height:54px;flex-shrink:0;padding:7px 13px;border-radius:7px}
+.canvasBox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;border:0;border-radius:0;background:#b9d4b0;box-shadow:none}
+#board{width:100%;height:100%;aspect-ratio:auto;object-fit:contain}
+.hint{flex-shrink:0;padding:7px 10px;border-radius:4px}
+.chatPanel{height:100%;min-height:0;border-radius:7px}
+@media(max-width:740px){#game{padding:0;gap:0}.topbar{min-height:48px;border-radius:0}.gameLayout{display:flex;flex-direction:column;min-height:0;gap:0}.playColumn{flex:1;min-height:0;gap:0}.stageBar{min-height:51px;border-radius:0}.canvasBox{flex:1;min-height:0;border:0;border-radius:0}.hint{font-size:10px;border-radius:0;padding:6px 9px}.chatPanel{position:fixed;top:10%;bottom:4%;left:3%;right:3%;height:auto;min-height:0;z-index:10}.chatPanel:not(.open){display:none}}
+
+/* Landscape single-screen interface */
+#game{position:fixed;inset:0;width:100%;height:100dvh;max-width:none;padding:0;gap:0;overflow:hidden;background:#b9d4b0}
+.gameLayout,.playColumn{display:block;position:absolute;inset:0;width:100%;height:100%;min-height:0}
+.canvasBox{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:0;box-shadow:none}
+#board{width:100%;height:100%;object-fit:fill}
+.topbar{position:absolute;z-index:7;left:8px;right:8px;top:6px;width:auto;min-height:0;height:37px;padding:3px 8px;border-radius:7px;background:#f6f3e9cf;box-shadow:none;gap:4px}
+.topLogo .disc,.topLogo small{display:none!important}.topLogo strong{font-size:12px!important;letter-spacing:0}
+.roomStrip{gap:4px;flex-wrap:nowrap}.chip{padding:4px 6px;font-size:10px;border:0;background:#ffffffb5}.chip b{font-size:11px}
+.smallBtn{padding:5px 8px;font-size:11px;border:0;border-radius:6px;background:#d9e9d7d9}
+#chatToggle{display:block!important}#resetBtn,#leaveBtn{display:none!important}
+.stageBar{position:absolute;z-index:5;top:47px;left:8px;right:auto;max-width:65%;min-height:0;padding:5px 8px;background:#f7f5e9b8;border-radius:6px;pointer-events:none}
+.stageBar .badge{font-size:9px;padding:2px 4px}.stageBar h2{font-size:12px;margin:1px 0}.stageBar p{display:none}.gameStats{font-size:9px;margin-left:10px}.gameStats b{font-size:11px}
+.hint{position:absolute;z-index:5;right:8px;bottom:5px;padding:4px 7px;font-size:9px!important;font-weight:500;background:#172d2780;color:#fff9;border-radius:5px;pointer-events:none}.hint b{color:inherit}.hint .right{display:none}
+.chatPanel,.chatPanel.open{position:absolute;z-index:11;top:45px;right:8px;left:auto;bottom:8px;width:min(300px,47vw);height:auto;min-height:0;border:1px solid #dce6d3;border-radius:8px;box-shadow:0 5px 25px #0007;background:#f9f8f0ed}
+.chatPanel:not(.open){display:none}.chatTop{padding:6px 9px}.chatTop strong{font-size:13px}.chatTop small{display:none}.chatTop button{display:block!important}.chatLog{padding:7px;gap:5px}.chatInputBar{padding:6px}.chatInputBar input{padding:7px;font-size:12px}.send{font-size:12px}
+#joystick{display:block;left:15px;bottom:15px;width:86px;height:86px;background:#284b4750;border:2px solid #ffffff60}
+#stick{left:23px;top:23px;width:36px;height:36px}
+#mobileEmote{display:block;right:16px;bottom:24px;width:45px;height:45px;font-size:17px;border:2px solid #fff9;background:#355c4788}
+#mobileChat{display:none!important}
+#reconnect{top:auto;bottom:6px;left:50%;padding:5px 9px;font-size:11px;z-index:12;white-space:nowrap}#reconnect button{padding:4px 7px}
+@media (orientation:portrait) and (max-width:900px){
+ #game{inset:auto;left:100vw;top:0;width:100dvh;height:100vw;transform-origin:top left;transform:rotate(90deg)}
+ .topbar{height:34px}.stageBar{top:43px}
+ .chatPanel,.chatPanel.open{width:min(290px,48%)}
+}
 </style>
 </head>
 <body>
@@ -48,10 +87,10 @@
       <div class="bigKiwi" aria-hidden="true"><div class="body"></div><div class="eye left"></div><div class="eye right"></div><div class="beak"></div><div class="foot a"></div><div class="foot b"></div></div>
       <div><div class="brandLogo">KIWI <span>TOGETHER</span></div><div class="brandSub">CO-OP ESCAPE CLUB</div></div>
     </div>
-    <p class="blurb">동글동글 키위새가 되어 친구들과 탈출하자!<br>힘을 합쳐 발판을 밟고, 열쇠를 찾고, 상자를 옮겨봐.</p>
+    <p class="blurb">2D 온라인 협동 퍼즐 게임</p>
     <div class="segment"><button type="button" id="createTab" class="active">✦ 새 방 만들기</button><button type="button" id="joinTab">➜ 친구 방 참여</button></div>
     <form id="startForm" autocomplete="off">
-      <label class="fieldLabel" for="nameInput">내 키위새 이름</label>
+      <label class="fieldLabel" for="nameInput">플레이어 이름</label>
       <input class="input" id="nameInput" placeholder="예: 동글키위" maxlength="14" required>
       <div id="roomField" class="hidden"><label class="fieldLabel" for="roomInput">초대받은 방 코드</label><input class="input" id="roomInput" placeholder="5글자 코드" maxlength="5" autocapitalize="characters" spellcheck="false"></div>
       <button type="submit" class="primary" id="startBtn">방 만들고 입장하기 →</button>
@@ -65,34 +104,34 @@
     <div class="topLogo"><span class="disc">🥝</span><div><strong>KIWI TOGETHER</strong><small>ESCAPE WITH FRIENDS</small></div></div>
     <div class="roomStrip">
       <span class="chip">ROOM <b id="roomCode">-----</b></span>
-      <button class="smallBtn" id="copyBtn">🔗 초대 링크 복사</button>
-      <button class="smallBtn" id="chatToggle">💬 채팅 <span id="unread" class="unread hidden">0</span></button>
+      <button class="smallBtn" id="copyBtn">초대</button>
+      <button class="smallBtn" id="chatToggle">채팅 <span id="unread" class="unread hidden">0</span></button>
       <button class="smallBtn" id="resetBtn">↻ 초기화</button>
       <button class="smallBtn" id="leaveBtn">나가기</button>
     </div>
   </header>
   <div class="gameLayout">
     <main class="playColumn">
-      <div class="stageBar"><div><span class="badge" id="stageTag">ROOM 01 / 03</span><h2 id="stageTitle">둘이서 하나</h2><p id="stageDesc">발판 두 개를 친구와 동시에 밟아 봐!</p></div><div class="gameStats">함께하는 키위<br><b id="playerCount">1 / 4</b><br><span id="timer">00:00</span></div></div>
+      <div class="stageBar"><div><span class="badge" id="stageTag">ROOM 01 / 03</span><h2 id="stageTitle">동시 발판</h2><p id="stageDesc">서로 다른 발판을 동시에 밟아 문을 여세요.</p></div><div class="gameStats">참가 인원<br><b id="playerCount">1 / 4</b><br><span id="timer">00:00</span></div></div>
       <div class="canvasBox" id="canvasBox">
         <canvas id="board" width="960" height="540" aria-label="키위 협동 방탈출 게임 화면"></canvas>
         <div id="toast" role="status"></div>
-        <div id="winPanel" class="hidden"><div class="trophy">🏆</div><h2>WE DID IT!</h2><p>작은 키위새들이 세 개의 방을 모두 탈출했어!<br>완벽한 팀워크 성공 🥝</p><button id="replayBtn">처음부터 다시 하기</button></div>
+        <div id="winPanel" class="hidden"><div class="trophy">🏆</div><h2>WE DID IT!</h2><p>3개의 퍼즐을 완료했습니다.</p><button id="replayBtn">처음부터 다시 하기</button></div>
         <div id="joystick"><div id="stick"></div></div>
         <button id="mobileEmote" title="삐약!" aria-label="삐약 말풍선">♪</button>
         <button id="mobileChat" aria-label="채팅 열기">💬</button>
       </div>
-      <div class="hint"><span><b>PC:</b> WASD / 방향키 이동 · <b>Enter:</b> 채팅 · <b>Space:</b> 삐약!</span><span class="right"><b>모바일:</b> 왼쪽 조이스틱 · 💬 채팅</span></div>
+      <div class="hint"><span>WASD / 방향키 · Enter: 채팅 · Space: 액션</span></div>
     </main>
     <aside class="chatPanel" id="chatPanel" aria-label="실시간 채팅">
-      <div class="chatTop"><div><strong>💬 키위 채팅</strong><br><small>우리 방의 이야기</small></div><button class="smallBtn hidden" id="chatClose">✕ 닫기</button></div>
+      <div class="chatTop"><div><strong>💬 키위 채팅</strong><br><small>실시간 메시지</small></div><button class="smallBtn hidden" id="chatClose">닫기</button></div>
       <div class="chatLog" id="chatLog" aria-live="polite"></div>
-      <form class="chatInputBar" id="chatForm"><input id="chatInput" maxlength="120" placeholder="친구에게 말 걸기..." autocomplete="off"><button type="submit" class="send">전송</button></form>
-      <div class="chatInfo">방에 들어온 친구에게만 메시지가 보여요</div>
+      <form class="chatInputBar" id="chatForm"><input id="chatInput" maxlength="120" placeholder="메시지 입력" autocomplete="off"><button type="submit" class="send">전송</button></form>
+      
     </aside>
   </div>
 </section>
-<div id="reconnect" class="hidden">연결이 끊어졌어. 방에 다시 들어가 봐! <button id="retryBtn">재접속</button></div>
+<div id="reconnect" class="hidden">연결 종료 <button id="retryBtn">재접속</button></div>
 <script>
 (function(){
 'use strict';
@@ -119,7 +158,7 @@ function startConnection(retry){
       $('menu').classList.add('hidden');$('game').classList.remove('hidden');$('reconnect').classList.add('hidden');$('startBtn').disabled=false;
       $('roomCode').textContent=roomCode;
       try{history.replaceState(null,'',location.pathname+'?room='+roomCode);}catch(e){}
-      addSystem('방 코드 '+roomCode+' · 친구에게 초대 링크를 보내 보세요!');
+      addSystem('ROOM '+roomCode);
     }else if(m.type==='state'){state=m;renderHUD(m);}
     else if(m.type==='chat'){addChat(m);lastChatBubbles.set(m.id,{text:m.text,time:Date.now()});}
     else if(m.type==='notice'){addSystem(m.text);showToast(m.text);}
@@ -133,14 +172,14 @@ function startConnection(retry){
     if(socket!==ws)return;
     $('startBtn').disabled=false;$('startBtn').textContent=joinMode?'친구 방 들어가기 →':'방 만들고 입장하기 →';
     if(joined){$('reconnect').classList.remove('hidden');joined=false;}
-    else if(!$('errorText').textContent)$('errorText').textContent='서버에 연결하지 못했어. 조금 후 다시 시도해 줘.';
+    else if(!$('errorText').textContent)$('errorText').textContent='서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요.';
   });
-  ws.addEventListener('error',()=>{if(!joined)$('errorText').textContent='연결에 실패했어. 서버 주소를 확인해 줘.';});
+  ws.addEventListener('error',()=>{if(!joined)$('errorText').textContent='연결에 실패했습니다. 서버 주소를 확인하세요.';});
 }
 $('startForm').addEventListener('submit',e=>{
   e.preventDefault();playerName=$('nameInput').value.trim().slice(0,14)||'키위';
   roomCode=joinMode?$('roomInput').value.trim().toUpperCase().replace(/[^A-Z2-9]/g,''):'';
-  if(joinMode&&roomCode.length!==5){$('errorText').textContent='방 코드를 5글자 입력해 줘!';return;}
+  if(joinMode&&roomCode.length!==5){$('errorText').textContent='방 코드를 5글자 입력하세요.';return;}
   try{localStorage.setItem('kiwi_name',playerName);}catch(e){}
   startConnection();
 });
@@ -154,13 +193,13 @@ function leave(){
 $('leaveBtn').addEventListener('click',leave);
 $('copyBtn').addEventListener('click',async()=>{
   const link=location.origin+location.pathname+'?room='+roomCode;
-  try{await navigator.clipboard.writeText(link);showToast('초대 링크 복사 완료! 친구에게 보내 줘 🥝');}
-  catch(e){window.prompt('이 링크를 복사해서 친구에게 보내 줘!',link);}
+  try{await navigator.clipboard.writeText(link);showToast('링크 복사 완료');}
+  catch(e){window.prompt('초대 링크를 복사하세요.',link);}
 });
-$('resetBtn').addEventListener('click',()=>{if(confirm('현재 방의 퍼즐을 처음 상태로 되돌릴까?'))message('reset');});
+$('resetBtn').addEventListener('click',()=>{if(confirm('퍼즐을 초기화하시겠습니까?'))message('reset');});
 $('replayBtn').addEventListener('click',()=>message('reset'));
 function renderHUD(s){
-  const titles=['둘이서 하나','열쇠를 찾아라!','상자 배송 작전','탈출 성공!'];
+  const titles=['동시 발판','열쇠를 찾아라!','상자 배송 작전','탈출 성공!'];
   const desc=['서로 다른 키위새 두 마리가 발판을 동시에 밟으면 문이 열린다!','한 명은 아래쪽 버튼을 밟고, 다른 한 명은 오른쪽 열쇠를 줍자.','상자 두 개를 동그란 초록 스위치까지 밀어 옮기자!','함께 탈출한 당신은 진정한 키위 챔피언!'];
   $('stageTag').textContent=s.stage===3?'COMPLETE!':'ROOM 0'+(s.stage+1)+' / 03';
   $('stageTitle').textContent=titles[s.stage];$('stageDesc').textContent=desc[s.stage];
@@ -234,7 +273,7 @@ function showToast(txt){
 // ---- Original vector-illustrated game art (no external assets) ----
 function rnd(x){return Math.sin(x*121.13)*43758.5453%1;}
 function roundRect(x,y,w,h,r,fill,stroke,lw=1){
-  ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke();}
+  ctx.beginPath();if(typeof ctx.roundRect==='function')ctx.roundRect(x,y,w,h,r);else{ctx.rect(x,y,w,h);}if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke();}
 }
 function text(str,x,y,size,color='#274c3b',align='center',weight=900){ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='middle';ctx.font=weight+' '+size+'px system-ui, sans-serif';ctx.fillText(str,x,y);}
 function drawFlower(x,y,c='#f4fbdd',scale=1){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);for(let i=0;i<5;i++){ctx.rotate(Math.PI*2/5);ctx.beginPath();ctx.ellipse(0,-6,3,6,0,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();}ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fillStyle='#eece74';ctx.fill();ctx.restore();}
@@ -297,7 +336,7 @@ function crate(x,y){
   ctx.restore();
 }
 function kiwi(p,elapsed){
-  const x=p.x,y=p.y;const moving=p.id===myId?keys.size>0||Math.hypot(joyX,joyY)>.1:true;
+  const x=Number(p.x)||142,y=Number(p.y)||247;const moving=p.id===myId?keys.size>0||Math.hypot(joyX,joyY)>.1:true;
   const bob=Math.sin(elapsed/165+Number(p.x)/50)*1.7;
   ctx.save();ctx.translate(x,y+bob);
   ctx.beginPath();ctx.ellipse(0,18,26,8,0,0,Math.PI*2);ctx.fillStyle='#476b524f';ctx.fill();
@@ -325,7 +364,8 @@ function kiwi(p,elapsed){
 }
 function drawScene(t){
   requestAnimationFrame(drawScene);
-  if(!joined||!state)return;
+  if(!joined)return;
+  if(!state){ctx.fillStyle='#d3e4c5';ctx.fillRect(0,0,960,540);kiwi({id:myId,x:142,y:247,name:playerName,color:'#d4b488'},t);return;}
   ctx.clearRect(0,0,960,540);floor();
   const s=state;
   // ground art/landmarks
@@ -356,7 +396,7 @@ function drawScene(t){
   }
   if(s.stage!==3){wall(EXIT_TOP);wall(EXIT_BOTTOM);if(!s.latch && (s.stage!==1||!s.keyTaken))drawGate(828,222,108,false);else drawGate(828,222,108,true);exitDoor(s.latch||s.keyTaken);}
   for(const p of s.players)kiwi(p,t);
-  if(s.players.length<2&&s.stage<3){roundRect(275,459,410,29,11,'#3c5e48d9');text('친구를 초대하면 협동 퍼즐을 풀 수 있어요!',480,473,14,'#f8ffe9');}
+  if(s.players.length<2&&s.stage<3){roundRect(275,459,410,29,11,'#3c5e48d9');text('다른 플레이어가 참가하면 진행할 수 있습니다.',480,473,14,'#f8ffe9');}
 }
 requestAnimationFrame(drawScene);
 })();
