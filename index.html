@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#162520">
+<title>KIWI TOGETHER — 키위새 협동 방탈출</title>
+<style>
+:root{--ink:#173b32;--dark:#152b25;--cream:#f7f4e9;--green:#b6e0b4;--mint:#d9f1d9;--orange:#ffbe77;--border:#d5ddd0}
+*{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%;background:#152820;color:var(--ink);font-family:system-ui,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif}button,input{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:disabled{opacity:.5;cursor:not-allowed}.hidden{display:none!important}
+#stars{position:fixed;inset:0;pointer-events:none;background-image:radial-gradient(#ffffff13 1.5px,transparent 1.5px);background-size:27px 27px;opacity:.8}
+#menu{position:relative;min-height:100dvh;display:grid;place-items:center;padding:24px}
+.menuCard{width:min(96vw,500px);background:#f9f7ef;border:4px solid #344c37;border-radius:26px;box-shadow:0 19px 0 #091a15,0 25px 45px #0005;padding:32px 38px 35px;position:relative;overflow:hidden}
+.menuCard:before{content:"✦   ✦   ✦";position:absolute;right:-3px;top:11px;font-size:24px;letter-spacing:30px;color:#bedec3;transform:rotate(-16deg)}
+.brandHead{display:flex;align-items:center;gap:15px;margin-bottom:16px}.brandLogo{font-weight:1000;letter-spacing:-2px;font-size:43px;line-height:.95}.brandLogo span{color:#6d9f7e}.brandSub{font-size:13px;letter-spacing:3px;font-weight:900;color:#718c79;margin-top:6px}
+.bigKiwi{position:relative;width:96px;height:96px;flex:none;animation:hop 1.75s infinite ease-in-out}.bigKiwi .body{position:absolute;left:7px;top:13px;width:83px;height:76px;background:radial-gradient(circle at 34% 24%,#f6ddae 0,#d3ad79 60%,#9b744b 100%);border:3px solid #72543a;border-radius:47% 50% 48% 49%;transform:rotate(-12deg)}.bigKiwi .eye{position:absolute;top:42px;width:10px;height:12px;border-radius:50%;background:#282924}.bigKiwi .eye.left{left:36px}.bigKiwi .eye.right{left:67px}.bigKiwi .beak{position:absolute;left:49px;top:51px;width:24px;height:13px;clip-path:polygon(0 0,100% 47%,0 100%);background:#f3b55f}.bigKiwi .foot{position:absolute;top:86px;width:22px;height:7px;border-radius:55%;background:#a77d51}.bigKiwi .foot.a{left:24px}.bigKiwi .foot.b{left:60px}
+@keyframes hop{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+.blurb{font-size:16px;line-height:1.7;color:#5d7165;margin:13px 0 22px;font-weight:600}
+.segment{display:flex;gap:8px;padding:5px;border:2px solid #d7e5d7;background:#e9f1e6;border-radius:15px;margin-bottom:19px}.segment button{flex:1;border:0;background:transparent;padding:12px 6px;border-radius:10px;color:#658374;font-weight:900}.segment button.active{color:#1f4737;background:white;box-shadow:0 3px 0 #cedccc}
+.fieldLabel{display:block;font-size:13px;font-weight:900;letter-spacing:1px;margin:16px 0 8px}.input{width:100%;border:2px solid #d0dece;border-radius:12px;padding:14px 14px;background:#fff;color:#14372c;outline:0;font-weight:700}.input:focus{border-color:#83bca1;box-shadow:0 0 0 3px #83bca138}.input::placeholder{color:#a2b3a7}.primary{width:100%;margin-top:23px;background:#335e43;color:white;border:0;border-bottom:5px solid #23422f;padding:15px;border-radius:13px;font-weight:1000;font-size:18px;transition:transform .1s}.primary:active{transform:translateY(3px);border-bottom-width:2px}.errmsg{min-height:22px;font-size:13px;color:#bb5656;margin:12px 0 0;font-weight:800}.tiny{margin-top:12px;text-align:center;color:#819184;font-size:12px;font-weight:700}
+#game{position:relative;z-index:1;min-height:100dvh;max-width:1550px;margin:0 auto;padding:14px;display:flex;flex-direction:column;gap:13px}
+.topbar{background:#f6f3e9;border-radius:17px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:76px;padding:12px 18px;box-shadow:0 5px 0 #0a1d17}
+.topLogo{display:flex;align-items:center;gap:10px;white-space:nowrap}.topLogo .disc{height:35px;width:35px;border-radius:50%;background:#c9a779;border:3px solid #7d5b3c;display:grid;place-items:center;font-size:24px}.topLogo strong{font-size:21px;letter-spacing:-1px}.topLogo small{display:block;font-weight:800;font-size:11px;color:#81948a;letter-spacing:1.5px}
+.roomStrip{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}.chip{border:2px solid #c9ddce;border-radius:11px;padding:8px 10px;background:white;font-size:12px;font-weight:900;color:#345847}.chip b{font-size:16px;letter-spacing:1px}.smallBtn{background:#d9e9d7;border:2px solid #b6d4ba;color:#244e37;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:900}.smallBtn:hover{background:#c1e5cb}
+.gameLayout{display:grid;grid-template-columns:minmax(0,1fr) 312px;gap:13px;flex:1;align-items:start}.playColumn{min-width:0;display:flex;flex-direction:column;gap:12px}
+.stageBar{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f5f4e9;padding:13px 17px;border-radius:14px;min-height:70px}.stageBar .badge{display:inline-block;background:#b4ddbd;color:#275940;border-radius:8px;font-size:11px;padding:5px 8px;font-weight:1000;letter-spacing:1px}.stageBar h2{margin:4px 0 0;font-size:20px;letter-spacing:-.5px}.stageBar p{margin:3px 0 0;color:#6c8170;font-size:13px;font-weight:750}.gameStats{font-size:12px;text-align:right;color:#7d8b7f;font-weight:800;white-space:nowrap}.gameStats b{font-size:17px;color:#335e43}
+.canvasBox{position:relative;overflow:hidden;background:#cfe5cd;border:6px solid #f8f4e9;border-radius:19px;box-shadow:0 5px 0 #0a1d17;isolation:isolate;touch-action:none;user-select:none}
+#board{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#d9ead1;touch-action:none}
+.hint{background:#f1f4e7;border-radius:11px;padding:11px 15px;color:#668072;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:12px}.hint b{color:#345b43}
+#toast{position:absolute;top:19px;left:50%;transform:translateX(-50%) translateY(-12px);z-index:4;background:#244a38ec;color:#fff;border:2px solid #b5e3b6;border-radius:10px;padding:11px 20px;max-width:90%;text-align:center;font-weight:800;font-size:13px;opacity:0;transition:.2s;pointer-events:none}#toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
+#winPanel{position:absolute;z-index:5;inset:0;background:#17352cc9;display:grid;place-content:center;text-align:center;color:#fff;padding:25px;backdrop-filter:blur(5px)}#winPanel .trophy{font-size:70px;animation:hop 1.5s infinite}#winPanel h2{font-size:36px;margin:5px 0}#winPanel p{font-weight:800;line-height:1.6}#winPanel button{width:230px;max-width:100%;justify-self:center;background:#d5eab3;color:#22503e;border:0;padding:14px;border-radius:11px;font-weight:1000;font-size:17px}
+.chatPanel{height:min(calc(100dvh - 125px),790px);min-height:490px;background:#f9f8f0;border-radius:17px;display:flex;flex-direction:column;box-shadow:0 5px 0 #0a1d17;overflow:hidden}.chatTop{display:flex;align-items:center;justify-content:space-between;padding:18px 17px 13px;border-bottom:2px solid #e5eadf}.chatTop strong{font-size:19px}.chatTop small{font-size:12px;font-weight:900;color:#7d9b86}.chatLog{display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;overflow-y:auto;padding:15px 15px 19px;overscroll-behavior:contain}.message{max-width:94%;word-break:break-word}.message.me{align-self:flex-end}.message .who{font-size:11px;font-weight:900;color:#839387;margin-bottom:5px}.message.me .who{text-align:right}.bubble{background:#e8eee5;border-radius:5px 15px 15px 15px;padding:10px 13px;line-height:1.5;font-size:13px;font-weight:690;color:#2d5140;white-space:pre-wrap}.message.me .bubble{background:#c5e5c4;border-radius:15px 5px 15px 15px}.systemMessage{align-self:center;background:#eef0e7;border-radius:9px;padding:7px 11px;color:#8b9a89;text-align:center;font-size:11px;font-weight:800;line-height:1.5;max-width:95%}
+.chatInputBar{display:flex;gap:7px;padding:12px;border-top:2px solid #ebeee5;background:#fbfcf6}.chatInputBar input{flex:1;min-width:0;outline:0;padding:11px 12px;border-radius:10px;border:2px solid #dfe9dc;background:#fff;color:#244934;font-size:13px}.chatInputBar input:focus{border-color:#8ab99a}.send{border:0;border-radius:10px;background:#37674a;color:white;font-size:15px;font-weight:900;padding:0 13px}.chatInfo{text-align:center;font-size:11px;color:#8c9a8c;font-weight:700;padding:0 7px 11px;background:#fbfcf6}
+#chatToggle,#joystick,#mobileEmote,#mobileChat{display:none}#chatToggle{position:relative}.unread{position:absolute;right:-3px;top:-5px;background:#ef856e;color:white;border-radius:100px;font-size:10px;padding:1px 5px;min-width:18px}
+#reconnect{position:fixed;z-index:12;left:50%;top:12px;transform:translateX(-50%);max-width:94vw;padding:12px 18px;background:#ffe9d8;border:2px solid #e4ab89;border-radius:11px;text-align:center;font-weight:850;color:#784a34;box-shadow:0 5px 20px #0004}#reconnect button{margin-left:10px;color:#fff;border:0;background:#995640;border-radius:7px;padding:7px 10px;font-weight:900}
+#joystick{position:absolute;left:24px;bottom:22px;width:112px;height:112px;border-radius:50%;background:#284b4777;border:3px solid #ffffff77;z-index:3;touch-action:none}#stick{position:absolute;left:31px;top:31px;width:44px;height:44px;border-radius:50%;background:#f4f1ddcc;border:3px solid #fff8;box-shadow:0 3px 6px #1b24242c;pointer-events:none}#mobileEmote,#mobileChat{position:absolute;z-index:3;bottom:29px;width:60px;height:60px;border:3px solid #fffd;border-radius:50%;background:#355c47d9;color:white;font-size:23px;font-weight:1000;box-shadow:0 4px 10px #18382040}#mobileEmote{right:18px}#mobileChat{right:89px}
+@media(max-width:1000px){.gameLayout{grid-template-columns:minmax(0,1fr) 278px}.topLogo strong{font-size:17px}.topbar{padding:11px 13px}.chip{padding:7px}}
+@media(max-width:740px){#game{padding:8px;gap:8px}.topbar{min-height:62px;border-radius:12px;gap:7px;padding:9px}.topLogo small{display:none}.topLogo .disc{height:30px;width:30px;font-size:20px}.topLogo strong{font-size:16px}.roomStrip{gap:5px}.chip{padding:6px;font-size:10px;border-width:1px}.chip b{font-size:13px}.smallBtn{padding:8px;font-size:11px}.roomStrip #resetBtn{display:none}.gameLayout{display:block}.stageBar{padding:10px 12px;min-height:58px}.stageBar h2{font-size:17px}.stageBar p{font-size:11px}.gameStats{font-size:11px}.gameStats b{font-size:15px}.canvasBox{border-width:3px;border-radius:13px}.hint{padding:11px;font-size:12px}.chatPanel{display:none;position:fixed;z-index:10;left:8px;right:8px;top:16%;height:70dvh;min-height:0;border:3px solid #fff;box-shadow:0 0 0 200vmax #071912a8,0 15px 40px #0009}.chatPanel.open{display:flex}#chatToggle{display:block}.menuCard{padding:27px 22px}.brandLogo{font-size:35px}.bigKiwi{transform:scale(.85)}#joystick,#mobileEmote,#mobileChat{display:block}#mobileChat{display:none}.canvasBox{min-height:0}.canvasBox #joystick{width:96px;height:96px;left:12px;bottom:10px}#stick{left:25px;top:25px;width:40px;height:40px}#mobileEmote{right:13px;bottom:11px;width:53px;height:53px;font-size:19px}.chatTop{padding:13px 15px}.chatTop button{display:block!important}}
+@media(hover:none) and (pointer:coarse){#joystick,#mobileEmote{display:block}}
+@media(max-width:440px){.menuCard{border-width:3px}.brandHead{gap:2px}.brandLogo{font-size:30px}.brandSub{letter-spacing:1.8px}.topLogo .disc{display:none}.topLogo strong{font-size:14px}.roomStrip #leaveBtn{display:none}.stageBar p{max-width:260px}.hint{align-items:flex-start}.hint .right{display:none}}
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<section id="menu">
+  <div class="menuCard">
+    <div class="brandHead">
+      <div class="bigKiwi" aria-hidden="true"><div class="body"></div><div class="eye left"></div><div class="eye right"></div><div class="beak"></div><div class="foot a"></div><div class="foot b"></div></div>
+      <div><div class="brandLogo">KIWI <span>TOGETHER</span></div><div class="brandSub">CO-OP ESCAPE CLUB</div></div>
+    </div>
+    <p class="blurb">동글동글 키위새가 되어 친구들과 탈출하자!<br>힘을 합쳐 발판을 밟고, 열쇠를 찾고, 상자를 옮겨봐.</p>
+    <div class="segment"><button type="button" id="createTab" class="active">✦ 새 방 만들기</button><button type="button" id="joinTab">➜ 친구 방 참여</button></div>
+    <form id="startForm" autocomplete="off">
+      <label class="fieldLabel" for="nameInput">내 키위새 이름</label>
+      <input class="input" id="nameInput" placeholder="예: 동글키위" maxlength="14" required>
+      <div id="roomField" class="hidden"><label class="fieldLabel" for="roomInput">초대받은 방 코드</label><input class="input" id="roomInput" placeholder="5글자 코드" maxlength="5" autocapitalize="characters" spellcheck="false"></div>
+      <button type="submit" class="primary" id="startBtn">방 만들고 입장하기 →</button>
+      <p id="errorText" class="errmsg"></p>
+    </form>
+    <div class="tiny">최대 4명 · PC/모바일 · 실시간 채팅</div>
+  </div>
+</section>
+<section id="game" class="hidden">
+  <header class="topbar">
+    <div class="topLogo"><span class="disc">🥝</span><div><strong>KIWI TOGETHER</strong><small>ESCAPE WITH FRIENDS</small></div></div>
+    <div class="roomStrip">
+      <span class="chip">ROOM <b id="roomCode">-----</b></span>
+      <button class="smallBtn" id="copyBtn">🔗 초대 링크 복사</button>
+      <button class="smallBtn" id="chatToggle">💬 채팅 <span id="unread" class="unread hidden">0</span></button>
+      <button class="smallBtn" id="resetBtn">↻ 초기화</button>
+      <button class="smallBtn" id="leaveBtn">나가기</button>
+    </div>
+  </header>
+  <div class="gameLayout">
+    <main class="playColumn">
+      <div class="stageBar"><div><span class="badge" id="stageTag">ROOM 01 / 03</span><h2 id="stageTitle">둘이서 하나</h2><p id="stageDesc">발판 두 개를 친구와 동시에 밟아 봐!</p></div><div class="gameStats">함께하는 키위<br><b id="playerCount">1 / 4</b><br><span id="timer">00:00</span></div></div>
+      <div class="canvasBox" id="canvasBox">
+        <canvas id="board" width="960" height="540" aria-label="키위 협동 방탈출 게임 화면"></canvas>
+        <div id="toast" role="status"></div>
+        <div id="winPanel" class="hidden"><div class="trophy">🏆</div><h2>WE DID IT!</h2><p>작은 키위새들이 세 개의 방을 모두 탈출했어!<br>완벽한 팀워크 성공 🥝</p><button id="replayBtn">처음부터 다시 하기</button></div>
+        <div id="joystick"><div id="stick"></div></div>
+        <button id="mobileEmote" title="삐약!" aria-label="삐약 말풍선">♪</button>
+        <button id="mobileChat" aria-label="채팅 열기">💬</button>
+      </div>
+      <div class="hint"><span><b>PC:</b> WASD / 방향키 이동 · <b>Enter:</b> 채팅 · <b>Space:</b> 삐약!</span><span class="right"><b>모바일:</b> 왼쪽 조이스틱 · 💬 채팅</span></div>
+    </main>
+    <aside class="chatPanel" id="chatPanel" aria-label="실시간 채팅">
+      <div class="chatTop"><div><strong>💬 키위 채팅</strong><br><small>우리 방의 이야기</small></div><button class="smallBtn hidden" id="chatClose">✕ 닫기</button></div>
+      <div class="chatLog" id="chatLog" aria-live="polite"></div>
+      <form class="chatInputBar" id="chatForm"><input id="chatInput" maxlength="120" placeholder="친구에게 말 걸기..." autocomplete="off"><button type="submit" class="send">전송</button></form>
+      <div class="chatInfo">방에 들어온 친구에게만 메시지가 보여요</div>
+    </aside>
+  </div>
+</section>
+<div id="reconnect" class="hidden">연결이 끊어졌어. 방에 다시 들어가 봐! <button id="retryBtn">재접속</button></div>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const canvas=$('board'),ctx=canvas.getContext('2d');
+let socket=null,myId='',roomCode='',playerName='',joinMode=false,joined=false;
+let state=null,keys=new Set(),joyX=0,joyY=0,joyPointer=null,toastTimer=0,unread=0,lastInput='',lastChatBubbles=new Map();
+const params=new URLSearchParams(window.location.search);
+if(params.has('room')){joinMode=true;$('roomInput').value=(params.get('room')||'').toUpperCase().slice(0,5);}
+try{$('nameInput').value=localStorage.getItem('kiwi_name')||'';}catch(e){}
+function setMode(join){joinMode=join;$('createTab').classList.toggle('active',!join);$('joinTab').classList.toggle('active',join);$('roomField').classList.toggle('hidden',!join);$('startBtn').textContent=join?'친구 방 들어가기 →':'방 만들고 입장하기 →';$('errorText').textContent='';}
+$('createTab').addEventListener('click',()=>setMode(false));$('joinTab').addEventListener('click',()=>setMode(true));setMode(joinMode);
+function message(type,data){if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(Object.assign({type},data||{})));}
+function startConnection(retry){
+  if(socket){try{socket.close();}catch(e){}}
+  $('errorText').textContent='';$('startBtn').disabled=true;$('startBtn').textContent='연결 중...';
+  const wsProtocol=location.protocol==='https:'?'wss:':'ws:';
+  const ws=new WebSocket(wsProtocol+'//'+location.host);socket=ws;
+  ws.addEventListener('open',()=>{message('join',{name:playerName,room:joinMode?roomCode:''});});
+  ws.addEventListener('message',ev=>{
+    let m;try{m=JSON.parse(ev.data);}catch(e){return;}
+    if(m.type==='welcome'){
+      myId=m.id;roomCode=m.room;joined=true;
+      $('menu').classList.add('hidden');$('game').classList.remove('hidden');$('reconnect').classList.add('hidden');$('startBtn').disabled=false;
+      $('roomCode').textContent=roomCode;
+      try{history.replaceState(null,'',location.pathname+'?room='+roomCode);}catch(e){}
+      addSystem('방 코드 '+roomCode+' · 친구에게 초대 링크를 보내 보세요!');
+    }else if(m.type==='state'){state=m;renderHUD(m);}
+    else if(m.type==='chat'){addChat(m);lastChatBubbles.set(m.id,{text:m.text,time:Date.now()});}
+    else if(m.type==='notice'){addSystem(m.text);showToast(m.text);}
+    else if(m.type==='bubble'){lastChatBubbles.set(m.id,{text:m.text,time:Date.now()});}
+    else if(m.type==='error'){
+      $('errorText').textContent=m.text;showToast(m.text);$('startBtn').disabled=false;$('startBtn').textContent=joinMode?'친구 방 들어가기 →':'방 만들고 입장하기 →';
+      if(!joined){ws.close();}
+    }
+  });
+  ws.addEventListener('close',()=>{
+    if(socket!==ws)return;
+    $('startBtn').disabled=false;$('startBtn').textContent=joinMode?'친구 방 들어가기 →':'방 만들고 입장하기 →';
+    if(joined){$('reconnect').classList.remove('hidden');joined=false;}
+    else if(!$('errorText').textContent)$('errorText').textContent='서버에 연결하지 못했어. 조금 후 다시 시도해 줘.';
+  });
+  ws.addEventListener('error',()=>{if(!joined)$('errorText').textContent='연결에 실패했어. 서버 주소를 확인해 줘.';});
+}
+$('startForm').addEventListener('submit',e=>{
+  e.preventDefault();playerName=$('nameInput').value.trim().slice(0,14)||'키위';
+  roomCode=joinMode?$('roomInput').value.trim().toUpperCase().replace(/[^A-Z2-9]/g,''):'';
+  if(joinMode&&roomCode.length!==5){$('errorText').textContent='방 코드를 5글자 입력해 줘!';return;}
+  try{localStorage.setItem('kiwi_name',playerName);}catch(e){}
+  startConnection();
+});
+$('retryBtn').addEventListener('click',()=>{if(!roomCode){leave();return;}joinMode=true;startConnection(true);});
+function leave(){
+  joined=false;const previous=socket;socket=null;if(previous)previous.close();
+  $('game').classList.add('hidden');$('menu').classList.remove('hidden');$('reconnect').classList.add('hidden');$('chatLog').replaceChildren();
+  $('chatPanel').classList.remove('open');$('roomInput').value='';roomCode='';state=null;keys.clear();joyX=0;joyY=0;setMode(false);
+  try{history.replaceState(null,'',location.pathname);}catch(e){}
+}
+$('leaveBtn').addEventListener('click',leave);
+$('copyBtn').addEventListener('click',async()=>{
+  const link=location.origin+location.pathname+'?room='+roomCode;
+  try{await navigator.clipboard.writeText(link);showToast('초대 링크 복사 완료! 친구에게 보내 줘 🥝');}
+  catch(e){window.prompt('이 링크를 복사해서 친구에게 보내 줘!',link);}
+});
+$('resetBtn').addEventListener('click',()=>{if(confirm('현재 방의 퍼즐을 처음 상태로 되돌릴까?'))message('reset');});
+$('replayBtn').addEventListener('click',()=>message('reset'));
+function renderHUD(s){
+  const titles=['둘이서 하나','열쇠를 찾아라!','상자 배송 작전','탈출 성공!'];
+  const desc=['서로 다른 키위새 두 마리가 발판을 동시에 밟으면 문이 열린다!','한 명은 아래쪽 버튼을 밟고, 다른 한 명은 오른쪽 열쇠를 줍자.','상자 두 개를 동그란 초록 스위치까지 밀어 옮기자!','함께 탈출한 당신은 진정한 키위 챔피언!'];
+  $('stageTag').textContent=s.stage===3?'COMPLETE!':'ROOM 0'+(s.stage+1)+' / 03';
+  $('stageTitle').textContent=titles[s.stage];$('stageDesc').textContent=desc[s.stage];
+  $('playerCount').textContent=s.players.length+' / 4';
+  const mm=String(Math.floor(s.seconds/60)).padStart(2,'0'),ss=String(s.seconds%60).padStart(2,'0');$('timer').textContent=mm+':'+ss;
+  $('winPanel').classList.toggle('hidden',s.stage!==3);
+}
+function addSystem(txt){
+  const el=document.createElement('div');el.className='systemMessage';el.textContent=txt;appendLog(el);
+}
+function addChat(m){
+  const el=document.createElement('div');el.className='message'+(m.id===myId?' me':'');
+  const who=document.createElement('div');who.className='who';who.textContent=m.name+(m.id===myId?' (나)':'');
+  const body=document.createElement('div');body.className='bubble';body.textContent=m.text;
+  el.append(who,body);appendLog(el);
+  if(innerWidth<=740&&!$('chatPanel').classList.contains('open')&&m.id!==myId){unread++;$('unread').classList.remove('hidden');$('unread').textContent=unread>9?'9+':String(unread);}
+}
+function appendLog(el){
+  const log=$('chatLog');log.appendChild(el);
+  while(log.children.length>90)log.removeChild(log.firstChild);
+  log.scrollTop=log.scrollHeight;
+}
+$('chatForm').addEventListener('submit',e=>{
+  e.preventDefault();const input=$('chatInput');const text=input.value.trim();if(!text||!joined)return;message('chat',{text});input.value='';input.focus();
+});
+function toggleChat(open){
+  $('chatPanel').classList.toggle('open',open);
+  if(open){unread=0;$('unread').classList.add('hidden');$('chatLog').scrollTop=$('chatLog').scrollHeight;$('chatInput').focus();}
+  else $('chatInput').blur();
+}
+$('chatToggle').addEventListener('click',()=>toggleChat(!$('chatPanel').classList.contains('open')));
+$('chatClose').addEventListener('click',()=>toggleChat(false));
+$('mobileChat').addEventListener('click',()=>toggleChat(true));
+$('mobileEmote').addEventListener('click',()=>message('emote',{index:0}));
+const movementKeys={'w':'up','arrowup':'up','s':'down','arrowdown':'down','a':'left','arrowleft':'left','d':'right','arrowright':'right'};
+window.addEventListener('keydown',e=>{
+  if(!joined)return;
+  const target=e.target;
+  if(target&&(['INPUT','TEXTAREA'].includes(target.tagName)||target.isContentEditable)){
+    if(e.key==='Escape'){target.blur();toggleChat(false);}return;
+  }
+  const k=e.key.toLowerCase();
+  if(movementKeys[k]){keys.add(movementKeys[k]);e.preventDefault();}
+  else if(e.key==='Enter'){e.preventDefault();if(innerWidth<=740)toggleChat(true);else $('chatInput').focus();}
+  else if(e.code==='Space'||k==='e'){e.preventDefault();if(!e.repeat)message('emote',{index:0});}
+  else if(['1','2','3','4'].includes(k)&&!e.repeat)message('emote',{index:Number(k)-1});
+});
+window.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(movementKeys[k])keys.delete(movementKeys[k]);});
+window.addEventListener('blur',()=>{keys.clear();joyX=0;joyY=0;updateStick();});
+const joy=$('joystick'),stick=$('stick');
+function updateStick(){const width=joy.clientWidth;const size=stick.clientWidth;const range=(width-size)/2-4;stick.style.left=((width-size)/2+joyX*range)+'px';stick.style.top=((width-size)/2+joyY*range)+'px';}
+function joyPoint(e){const b=joy.getBoundingClientRect();const dx=e.clientX-(b.left+b.width/2),dy=e.clientY-(b.top+b.height/2);const radius=Math.max(1,(b.width-stick.clientWidth)/2);const d=Math.max(1,Math.hypot(dx,dy)),amount=Math.min(1,d/radius);joyX=dx/d*amount;joyY=dy/d*amount;updateStick();}
+joy.addEventListener('pointerdown',e=>{e.preventDefault();joyPointer=e.pointerId;joy.setPointerCapture(e.pointerId);joyPoint(e);});
+joy.addEventListener('pointermove',e=>{if(e.pointerId===joyPointer){e.preventDefault();joyPoint(e);}});
+function joyEnd(e){if(e.pointerId===joyPointer){joyPointer=null;joyX=0;joyY=0;updateStick();}}
+joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
+let moveCount=0;
+setInterval(()=>{
+ if(!joined)return;
+ const dx=Number(keys.has('right'))-Number(keys.has('left'))+joyX;
+ const dy=Number(keys.has('down'))-Number(keys.has('up'))+joyY;
+ const len=Math.max(1,Math.hypot(dx,dy));
+ const mx=Math.round(dx/len*100)/100,my=Math.round(dy/len*100)/100;
+ const now=mx+','+my;
+ if(now!==lastInput||moveCount++%7===0){message('move',{x:mx,y:my});lastInput=now;}
+},55);
+function showToast(txt){
+  const el=$('toast');el.textContent=txt;el.classList.add('visible');clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('visible'),3100);
+}
+// ---- Original vector-illustrated game art (no external assets) ----
+function rnd(x){return Math.sin(x*121.13)*43758.5453%1;}
+function roundRect(x,y,w,h,r,fill,stroke,lw=1){
+  ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke();}
+}
+function text(str,x,y,size,color='#274c3b',align='center',weight=900){ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='middle';ctx.font=weight+' '+size+'px system-ui, sans-serif';ctx.fillText(str,x,y);}
+function drawFlower(x,y,c='#f4fbdd',scale=1){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);for(let i=0;i<5;i++){ctx.rotate(Math.PI*2/5);ctx.beginPath();ctx.ellipse(0,-6,3,6,0,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();}ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fillStyle='#eece74';ctx.fill();ctx.restore();}
+function floor(){
+  ctx.fillStyle='#c9debe';ctx.fillRect(0,0,960,540);
+  for(let iy=0;iy<12;iy++)for(let ix=0;ix<21;ix++){
+    let x=ix*48,y=iy*48;
+    ctx.fillStyle=(ix+iy)%2?'#dceacb':'#d3e4c5';ctx.fillRect(x,y,48,48);
+    if((ix*7+iy*11)%9===0){ctx.strokeStyle='#bad2ad';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+17,y+30);ctx.lineTo(x+19,y+20);ctx.moveTo(x+19,y+26);ctx.lineTo(x+25,y+23);ctx.stroke();}
+  }
+  for(let i=0;i<16;i++){
+    const x=65+(i*139)%820,y=83+(i*187)%365;
+    if(i%2===0)drawFlower(x,y,'#f8f5dc',.6);else drawFlower(x,y,'#ecf4b6',.55);
+  }
+  ctx.fillStyle='#a1be9e';ctx.fillRect(0,0,960,51);ctx.fillRect(0,487,960,53);ctx.fillRect(0,0,50,540);ctx.fillRect(908,0,52,540);
+  // Decorative dotted stone border
+  ctx.fillStyle='#7fa58b';for(let x=60;x<920;x+=29){ctx.beginPath();ctx.arc(x,60,2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x,480,2,0,Math.PI*2);ctx.fill();}
+  roundRect(56,67,848,411,18,null,'#88b09a',3);
+}
+function wall(w){
+  roundRect(w.x+4,w.y+5,w.w,w.h,5,'#6b827b');
+  roundRect(w.x,w.y,w.w,w.h,5,'#779c8e','#4d786d',2);
+  ctx.fillStyle='#99b8a3';ctx.fillRect(w.x+4,w.y+3,Math.max(2,w.w-8),7);
+  ctx.strokeStyle='#aec4af';ctx.lineWidth=1.5;
+  for(let y=w.y+28;y<w.y+w.h-8;y+=36){ctx.beginPath();ctx.moveTo(w.x+3,y);ctx.lineTo(w.x+w.w-3,y);ctx.stroke();}
+}
+function pad(x,y,on,label){
+  ctx.beginPath();ctx.ellipse(x,y+6,43,30,0,0,Math.PI*2);ctx.fillStyle='#667e69a8';ctx.fill();
+  ctx.beginPath();ctx.ellipse(x,y,41,29,0,0,Math.PI*2);ctx.fillStyle=on?'#baf19a':'#eef3c7';ctx.fill();ctx.strokeStyle=on?'#4d9b65':'#84a686';ctx.lineWidth=5;ctx.stroke();
+  ctx.beginPath();ctx.ellipse(x,y,27,18,0,0,Math.PI*2);ctx.fillStyle=on?'#78cc78':'#c1d3a5';ctx.fill();
+  text(label,x,y+2,13,on?'#31583a':'#648367');
+  if(on){ctx.strokeStyle='#f9ffd2';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,49,0,Math.PI*2);ctx.stroke();}
+}
+function drawGate(x,y,h,open){
+  if(open){
+    ctx.fillStyle='#b1f5c044';ctx.fillRect(x,y,20,h);
+    for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(x+11,y+20+i*27,3.5,0,Math.PI*2);ctx.fillStyle='#eefbaf';ctx.fill();}
+  }else{
+    ctx.fillStyle='#bd735a';ctx.fillRect(x,y,22,h);
+    for(let i=0;i<4;i++)roundRect(x-2,y+8+i*28,26,7,2,'#edb598','#855b56',1);
+    roundRect(x+4,y+h/2-7,14,14,3,'#edca72','#8d7044',2);
+  }
+}
+function exitDoor(open){
+  const x=859,y=230;
+  roundRect(x,y,43,92,9,open?'#d6ffc9':'#bdc7a8','#7b9b74',4);
+  roundRect(x+7,y+7,29,78,6,open?'#9de8a8':'#b2bf9d');
+  text(open?'→':'⌕',x+21,y+43,29,open?'#346944':'#71866a');
+  text('EXIT',x+21,y-17,13,'#43664b');
+}
+function keyShape(x,y){
+  ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(performance.now()/330)*.1);ctx.strokeStyle='#ae853d';ctx.lineWidth=8;ctx.beginPath();ctx.arc(-10,-5,13,0,Math.PI*2);ctx.moveTo(1,4);ctx.lineTo(24,23);ctx.moveTo(17,17);ctx.lineTo(21,9);ctx.moveTo(22,21);ctx.lineTo(29,14);ctx.stroke();ctx.strokeStyle='#ffe17e';ctx.lineWidth=5;ctx.beginPath();ctx.arc(-10,-5,13,0,Math.PI*2);ctx.moveTo(1,4);ctx.lineTo(24,23);ctx.moveTo(17,17);ctx.lineTo(21,9);ctx.moveTo(22,21);ctx.lineTo(29,14);ctx.stroke();ctx.restore();
+}
+function crate(x,y){
+  ctx.save();ctx.translate(x,y);
+  roundRect(-26,-21,52,53,6,'#6f5e42');roundRect(-26,-26,52,52,5,'#bc9361','#775735',4);
+  roundRect(-19,-19,38,38,4,'#d4ae79','#8f7049',2);
+  ctx.lineWidth=5;ctx.strokeStyle='#ae8759';ctx.beginPath();ctx.moveTo(-17,-17);ctx.lineTo(17,17);ctx.moveTo(17,-17);ctx.lineTo(-17,17);ctx.stroke();
+  ctx.fillStyle='#fff2ba';for(let a of [[-19,-19],[19,-19],[-19,19],[19,19]]){ctx.beginPath();ctx.arc(a[0],a[1],2.5,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+}
+function kiwi(p,elapsed){
+  const x=p.x,y=p.y;const moving=p.id===myId?keys.size>0||Math.hypot(joyX,joyY)>.1:true;
+  const bob=Math.sin(elapsed/165+Number(p.x)/50)*1.7;
+  ctx.save();ctx.translate(x,y+bob);
+  ctx.beginPath();ctx.ellipse(0,18,26,8,0,0,Math.PI*2);ctx.fillStyle='#476b524f';ctx.fill();
+  // Feet
+  roundRect(-17,17,15,9,4,'#ab7952');roundRect(3,17,15,9,4,'#ab7952');
+  // Round, fluffy kiwi bird
+  const grad=ctx.createRadialGradient(-9,-12,2,2,1,31);grad.addColorStop(0,'#f8e8ce');grad.addColorStop(.45,p.color);grad.addColorStop(1,'#987955');
+  ctx.beginPath();ctx.ellipse(0,-1,28,29,-.12,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();ctx.strokeStyle='#735c47';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.beginPath();ctx.ellipse(-17,3,8,12,-.4,0,Math.PI*2);ctx.fillStyle='#b9946c';ctx.fill();
+  // Face
+  ctx.fillStyle='#292c27';for(const a of [-9,10]){ctx.beginPath();ctx.ellipse(a,-7,3.8,5,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(a-1,-9,1.3,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.fillStyle='#292c27';}
+  ctx.beginPath();ctx.moveTo(-1,-1);ctx.lineTo(19,3);ctx.lineTo(-1,7);ctx.closePath();ctx.fillStyle='#e9ab5f';ctx.fill();ctx.strokeStyle='#bf7f47';ctx.lineWidth=1;ctx.stroke();
+  ctx.restore();
+  // Player name: above head
+  ctx.font='850 13px system-ui,sans-serif';const label=p.name||'키위';const labelW=Math.min(190,ctx.measureText(label).width+23);
+  roundRect(x-labelW/2,y-59,labelW,23,9,p.id===myId?'#244e3e':'#f8f6e9','#ffffff9c',1);
+  text(label,x,y-47,12,p.id===myId?'#fff':'#3d5d47');
+  if(p.id===myId){ctx.beginPath();ctx.moveTo(x-6,y-36);ctx.lineTo(x+6,y-36);ctx.lineTo(x,y-30);ctx.closePath();ctx.fillStyle='#244e3e';ctx.fill();}
+  const bubble=lastChatBubbles.get(p.id);
+  if(bubble&&Date.now()-bubble.time<3000){
+    const value=bubble.text.length>20?bubble.text.slice(0,20)+'…':bubble.text;
+    ctx.font='800 14px system-ui';const width=Math.min(260,Math.max(72,ctx.measureText(value).width+24));
+    roundRect(x-width/2,y-100,width,30,10,'#fffef2','#95ba9d',2);text(value,x,y-84,13,'#3d6447');
+  }
+}
+function drawScene(t){
+  requestAnimationFrame(drawScene);
+  if(!joined||!state)return;
+  ctx.clearRect(0,0,960,540);floor();
+  const s=state;
+  // ground art/landmarks
+  roundRect(71,243,110,73,20,'#eaf0c9bb');
+  text('START',124,279,16,'#86a28c');
+  if(s.stage===0){
+    for(const w of [{x:423,y:65,w:28,h:168},{x:423,y:310,w:28,h:178}])wall(w);
+    pad(285,176,s.plateA,'①');pad(285,390,s.plateB,'②');
+    text(s.latch?'출구가 열렸어!':'동시에 밟아!',609,93,23,s.latch?'#5b9967':'#7a956e');
+    if(s.latch){ctx.fillStyle='#a0d19d88';roundRect(580,164,165,228,28,'#d5edbd55');}
+  }else if(s.stage===1){
+    wall({x:485,y:65,w:24,h:149});wall({x:485,y:340,w:24,h:148});
+    const doorOpen=s.stage2Plate||s.keyTaken;
+    drawGate(485,214,126,doorOpen);
+    pad(255,410,s.stage2Plate||s.keyTaken,'HOLD');
+    if(!s.keyTaken){keyShape(708,274);text('황금 열쇠',706,219,18,'#8f773b');}
+    else {const owner=s.players.find(p=>p.id===s.keyOwner);if(owner)keyShape(owner.x+23,owner.y-23);}
+    text(doorOpen?'문이 열렸어!':'버튼을 밟자!',340,85,20,doorOpen?'#58986c':'#78956e');
+  }else if(s.stage===2){
+    wall({x:483,y:243,w:142,h:54});
+    for(let i=0;i<2;i++){
+      pad(674,i===0?189:381,s.targets[i],'BOX');
+    }
+    for(const b of s.boxes)crate(b.x,b.y);
+    text(s.latch?'둘 다 성공!':'상자를 밀어줘!',603,91,21,s.latch?'#579666':'#78966b');
+  }else if(s.stage===3){
+    for(let i=0;i<18;i++){ctx.fillStyle=['#ffcf85','#d4efca','#f2aac1','#d9d4f5'][i%4];ctx.save();ctx.translate(90+(i*73)%777,120+(i*113)%320);ctx.rotate(t/1000+i);ctx.fillRect(-5,-3,10,6);ctx.restore();}
+  }
+  if(s.stage!==3){wall(EXIT_TOP);wall(EXIT_BOTTOM);if(!s.latch && (s.stage!==1||!s.keyTaken))drawGate(828,222,108,false);else drawGate(828,222,108,true);exitDoor(s.latch||s.keyTaken);}
+  for(const p of s.players)kiwi(p,t);
+  if(s.players.length<2&&s.stage<3){roundRect(275,459,410,29,11,'#3c5e48d9');text('친구를 초대하면 협동 퍼즐을 풀 수 있어요!',480,473,14,'#f8ffe9');}
+}
+requestAnimationFrame(drawScene);
+})();
+</script>
+</body>
+</html>
