@@ -343,7 +343,7 @@ function kiwi(p,elapsed){
   // Feet
   roundRect(-17,17,15,9,4,'#ab7952');roundRect(3,17,15,9,4,'#ab7952');
   // Round, fluffy kiwi bird
-  const grad=ctx.createRadialGradient(-9,-12,2,2,1,31);grad.addColorStop(0,'#f8e8ce');grad.addColorStop(.45,p.color);grad.addColorStop(1,'#987955');
+  const grad=ctx.createRadialGradient(-9,-12,2,2,1,31);grad.addColorStop(0,'#f8e8ce');grad.addColorStop(.45,(typeof p.color==='string' && /^#[0-9a-fA-F]{3,8}$/.test(p.color))?p.color:'#c8a47c');grad.addColorStop(1,'#987955');
   ctx.beginPath();ctx.ellipse(0,-1,28,29,-.12,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();ctx.strokeStyle='#735c47';ctx.lineWidth=2.5;ctx.stroke();
   ctx.beginPath();ctx.ellipse(-17,3,8,12,-.4,0,Math.PI*2);ctx.fillStyle='#b9946c';ctx.fill();
   // Face
@@ -382,7 +382,7 @@ function drawScene(t){
     drawGate(485,214,126,doorOpen);
     pad(255,410,s.stage2Plate||s.keyTaken,'HOLD');
     if(!s.keyTaken){keyShape(708,274);text('황금 열쇠',706,219,18,'#8f773b');}
-    else {const owner=s.players.find(p=>p.id===s.keyOwner);if(owner)keyShape(owner.x+23,owner.y-23);}
+    else {const owner=(Array.isArray(s.players)?s.players:[]).find(p=>p.id===s.keyOwner);if(owner)keyShape(owner.x+23,owner.y-23);}
     text(doorOpen?'문이 열렸어!':'버튼을 밟자!',340,85,20,doorOpen?'#58986c':'#78956e');
   }else if(s.stage===2){
     wall({x:483,y:243,w:142,h:54});
@@ -400,7 +400,7 @@ function drawScene(t){
   const localPlayer = visiblePlayers.find(p => String(p.id) === String(myId));
   for(const p of visiblePlayers)kiwi(p,t);
   if(!localPlayer && myId)kiwi({id:myId,x:142,y:247,name:playerName,color:'#d4b488'},t);
-  if(s.players.length<2&&s.stage<3){roundRect(275,459,410,29,11,'#3c5e48d9');text('다른 플레이어가 참가하면 진행할 수 있습니다.',480,473,14,'#f8ffe9');}
+  if(players.length<2&&s.stage<3){roundRect(275,459,410,29,11,'#3c5e48d9');text('다른 플레이어가 참가하면 진행할 수 있습니다.',480,473,14,'#f8ffe9');}
 }
 requestAnimationFrame(drawScene);
 })();
