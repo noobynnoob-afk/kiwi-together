@@ -199,13 +199,16 @@ $('copyBtn').addEventListener('click',async()=>{
 $('resetBtn').addEventListener('click',()=>{if(confirm('퍼즐을 초기화하시겠습니까?'))message('reset');});
 $('replayBtn').addEventListener('click',()=>message('reset'));
 function renderHUD(s){
-  const titles=['동시 발판','열쇠를 찾아라!','상자 배송 작전','탈출 성공!'];
-  const desc=['서로 다른 키위새 두 마리가 발판을 동시에 밟으면 문이 열린다!','한 명은 아래쪽 버튼을 밟고, 다른 한 명은 오른쪽 열쇠를 줍자.','상자 두 개를 동그란 초록 스위치까지 밀어 옮기자!','함께 탈출한 당신은 진정한 키위 챔피언!'];
-  $('stageTag').textContent=s.stage===3?'COMPLETE!':'ROOM 0'+(s.stage+1)+' / 03';
-  $('stageTitle').textContent=titles[s.stage];$('stageDesc').textContent=desc[s.stage];
-  $('playerCount').textContent=s.players.length+' / 4';
-  const mm=String(Math.floor(s.seconds/60)).padStart(2,'0'),ss=String(s.seconds%60).padStart(2,'0');$('timer').textContent=mm+':'+ss;
-  $('winPanel').classList.toggle('hidden',s.stage!==3);
+  const complete=s.stage>=30;
+  const names=['동시 발판','열쇠와 스위치','상자 이동'];
+  const variant=Math.floor(s.stage/3)+1;
+  $('stageTag').textContent=complete?'COMPLETE':`STAGE ${String(s.stage+1).padStart(2,'0')} / 30`;
+  $('stageTitle').textContent=complete?'ALL CLEAR':names[s.stage%3]+` ${variant}`;
+  $('stageDesc').textContent='';
+  $('playerCount').textContent=(s.players||[]).length+' / 4';
+  const seconds=Number(s.seconds)||0;
+  $('timer').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+  $('winPanel').classList.toggle('hidden',!complete);
 }
 function addSystem(txt){
   const el=document.createElement('div');el.className='systemMessage';el.textContent=txt;appendLog(el);
@@ -251,11 +254,23 @@ window.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(movementKeys[
 window.addEventListener('blur',()=>{keys.clear();joyX=0;joyY=0;updateStick();});
 const joy=$('joystick'),stick=$('stick');
 function updateStick(){const width=joy.clientWidth;const size=stick.clientWidth;const range=(width-size)/2-4;stick.style.left=((width-size)/2+joyX*range)+'px';stick.style.top=((width-size)/2+joyY*range)+'px';}
-function joyPoint(e){const b=joy.getBoundingClientRect();const dx=e.clientX-(b.left+b.width/2),dy=e.clientY-(b.top+b.height/2);const radius=Math.max(1,(b.width-stick.clientWidth)/2);const d=Math.max(1,Math.hypot(dx,dy)),amount=Math.min(1,d/radius);joyX=dx/d*amount;joyY=dy/d*amount;updateStick();}
-joy.addEventListener('pointerdown',e=>{e.preventDefault();joyPointer=e.pointerId;joy.setPointerCapture(e.pointerId);joyPoint(e);});
+function joyPoint(e){
+  // Derive direction from the joystick's actual transformed axes.
+  const b=joy.getBoundingClientRect();
+  const centerX=b.left+b.width/2, centerY=b.top+b.height/2;
+  const rotated=window.matchMedia('(orientation:portrait) and (max-width:900px)').matches;
+  let dx=e.clientX-centerX,dy=e.clientY-centerY;
+  if(rotated){const oldX=dx;dx=dy;dy=-oldX;}
+  const radius=Math.max(20,joy.offsetWidth*.36);
+  const len=Math.hypot(dx,dy);
+  const power=Math.min(1,len/radius);
+  joyX=len>3?dx/len*power:0;joyY=len>3?dy/len*power:0;
+  updateStick();
+}
+joy.addEventListener('pointerdown',e=>{e.preventDefault();joyPointer=e.pointerId;try{joy.setPointerCapture(e.pointerId);}catch(_){}joyPoint(e);});
 joy.addEventListener('pointermove',e=>{if(e.pointerId===joyPointer){e.preventDefault();joyPoint(e);}});
 function joyEnd(e){if(e.pointerId===joyPointer){joyPointer=null;joyX=0;joyY=0;updateStick();}}
-joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
+window.addEventListener('pointerup',joyEnd);window.addEventListener('pointercancel',joyEnd);
 let moveCount=0;
 setInterval(()=>{
  if(!joined)return;
@@ -343,7 +358,7 @@ function kiwi(p,elapsed){
   // Feet
   roundRect(-17,17,15,9,4,'#ab7952');roundRect(3,17,15,9,4,'#ab7952');
   // Round, fluffy kiwi bird
-  const grad=ctx.createRadialGradient(-9,-12,2,2,1,31);grad.addColorStop(0,'#f8e8ce');grad.addColorStop(.45,(typeof p.color==='string' && /^#[0-9a-fA-F]{3,8}$/.test(p.color))?p.color:'#c8a47c');grad.addColorStop(1,'#987955');
+  const grad=ctx.createRadialGradient(-9,-12,2,2,1,31);grad.addColorStop(0,'#f8e8ce');grad.addColorStop(.45,/^#[0-9a-fA-F]{3,8}$/.test(p.color||'')?p.color:'#d4b488');grad.addColorStop(1,'#987955');
   ctx.beginPath();ctx.ellipse(0,-1,28,29,-.12,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();ctx.strokeStyle='#735c47';ctx.lineWidth=2.5;ctx.stroke();
   ctx.beginPath();ctx.ellipse(-17,3,8,12,-.4,0,Math.PI*2);ctx.fillStyle='#b9946c';ctx.fill();
   // Face
@@ -366,41 +381,47 @@ function drawScene(t){
   requestAnimationFrame(drawScene);
   if(!joined)return;
   if(!state){ctx.fillStyle='#d3e4c5';ctx.fillRect(0,0,960,540);kiwi({id:myId,x:142,y:247,name:playerName,color:'#d4b488'},t);return;}
-  ctx.clearRect(0,0,960,540);floor();
+  try{ctx.clearRect(0,0,960,540);floor();
   const s=state;
   // ground art/landmarks
   roundRect(71,243,110,73,20,'#eaf0c9bb');
   text('START',124,279,16,'#86a28c');
-  if(s.stage===0){
+  if(s.stage>=30){
+    text('ALL CLEAR',480,260,44,'#38664a');
+  }else if(s.stage%3===0){
     for(const w of [{x:423,y:65,w:28,h:168},{x:423,y:310,w:28,h:178}])wall(w);
     pad(285,176,s.plateA,'①');pad(285,390,s.plateB,'②');
     text(s.latch?'출구가 열렸어!':'동시에 밟아!',609,93,23,s.latch?'#5b9967':'#7a956e');
     if(s.latch){ctx.fillStyle='#a0d19d88';roundRect(580,164,165,228,28,'#d5edbd55');}
-  }else if(s.stage===1){
+  }else if(s.stage%3===1){
     wall({x:485,y:65,w:24,h:149});wall({x:485,y:340,w:24,h:148});
     const doorOpen=s.stage2Plate||s.keyTaken;
     drawGate(485,214,126,doorOpen);
     pad(255,410,s.stage2Plate||s.keyTaken,'HOLD');
     if(!s.keyTaken){keyShape(708,274);text('황금 열쇠',706,219,18,'#8f773b');}
-    else {const owner=(Array.isArray(s.players)?s.players:[]).find(p=>p.id===s.keyOwner);if(owner)keyShape(owner.x+23,owner.y-23);}
+    else {const owner=(s.players||[]).find(p=>p.id===s.keyOwner);if(owner)keyShape(owner.x+23,owner.y-23);}
     text(doorOpen?'문이 열렸어!':'버튼을 밟자!',340,85,20,doorOpen?'#58986c':'#78956e');
-  }else if(s.stage===2){
+  }else if(s.stage%3===2){
     wall({x:483,y:243,w:142,h:54});
     for(let i=0;i<2;i++){
-      pad(674,i===0?189:381,s.targets[i],'BOX');
+      pad(674,i===0?189:381,(s.targets||[])[i],'BOX');
     }
-    for(const b of s.boxes)crate(b.x,b.y);
+    for(const b of (s.boxes||[]))crate(b.x,b.y);
     text(s.latch?'둘 다 성공!':'상자를 밀어줘!',603,91,21,s.latch?'#579666':'#78966b');
-  }else if(s.stage===3){
+  }else if(s.stage>=30){
     for(let i=0;i<18;i++){ctx.fillStyle=['#ffcf85','#d4efca','#f2aac1','#d9d4f5'][i%4];ctx.save();ctx.translate(90+(i*73)%777,120+(i*113)%320);ctx.rotate(t/1000+i);ctx.fillRect(-5,-3,10,6);ctx.restore();}
   }
-  if(s.stage!==3){wall(EXIT_TOP);wall(EXIT_BOTTOM);if(!s.latch && (s.stage!==1||!s.keyTaken))drawGate(828,222,108,false);else drawGate(828,222,108,true);exitDoor(s.latch||s.keyTaken);}
-  // Always render the local player, even if a state packet temporarily omits it.
-  const visiblePlayers = Array.isArray(s.players) ? s.players : [];
-  const localPlayer = visiblePlayers.find(p => String(p.id) === String(myId));
-  for(const p of visiblePlayers)kiwi(p,t);
-  if(!localPlayer && myId)kiwi({id:myId,x:142,y:247,name:playerName,color:'#d4b488'},t);
-  if(players.length<2&&s.stage<3){roundRect(275,459,410,29,11,'#3c5e48d9');text('다른 플레이어가 참가하면 진행할 수 있습니다.',480,473,14,'#f8ffe9');}
+  if(s.stage<30){wall(EXIT_TOP);wall(EXIT_BOTTOM);if(!s.latch && (s.stage%3!==1||!s.keyTaken))drawGate(828,222,108,false);else drawGate(828,222,108,true);exitDoor(s.latch||s.keyTaken);}
+  const visible=Array.isArray(s.players)?s.players:[];
+  for(const p of visible){try{kiwi(p,t);}catch(err){console.warn('player draw',err);}}
+  if(!visible.some(p=>String(p.id)===String(myId))){
+    kiwi({id:myId,x:142,y:247,name:playerName||'KIWI',color:'#d4b488'},t);
+  }
+  if(visible.length<2&&s.stage<30){roundRect(275,459,410,29,11,'#3c5e48d9');text('2인 협동 구간',480,473,14,'#f8ffe9');}
+  }catch(err){
+    console.error('scene render',err);
+    try{kiwi({id:myId,x:142,y:247,name:playerName||'KIWI',color:'#d4b488'},t);}catch(_){}
+  }
 }
 requestAnimationFrame(drawScene);
 })();

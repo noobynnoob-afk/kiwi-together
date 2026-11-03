@@ -9,6 +9,8 @@ const WebSocket = require('ws');
 
 const PORT = Number(process.env.PORT) || 10000;
 const WIDTH = 960, HEIGHT = 540;
+const TOTAL_STAGES = 30;
+const mode = stage => stage % 3;
 const SPEED = 188, RADIUS = 19;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rooms = new Map();
@@ -67,16 +69,16 @@ function createRoom(){
 }
 function getWalls(room){
   const walls=[];
-  if(room.stage===0){
+  if(mode(room.stage)===0){
     walls.push(rect(423,65,28,168),rect(423,310,28,178));
     walls.push(EXIT_TOP,EXIT_BOTTOM);
     if(!room.latch) walls.push(EXIT_GATE);
-  } else if(room.stage===1){
+  } else if(mode(room.stage)===1){
     walls.push(STAGE2_TOP,STAGE2_BOTTOM);
     if(!room.keyTaken && !plateOccupied(room,{x:255,y:410},34)) walls.push(STAGE2_GATE);
     walls.push(EXIT_TOP,EXIT_BOTTOM);
     if(!room.keyTaken)walls.push(EXIT_GATE);
-  } else if(room.stage===2){
+  } else if(mode(room.stage)===2){
     walls.push(rect(483,243,142,54));
     walls.push(EXIT_TOP,EXIT_BOTTOM);
     if(!room.latch)walls.push(EXIT_GATE);
@@ -95,7 +97,7 @@ function plateOccupied(room,point,r){return occupied(room,point,r).length>0;}
 function blocked(room,x,y,r,ignoreCrate=-1){
   if(x-r<55||x+r>905||y-r<72||y+r>479) return true;
   for(const w of getWalls(room))if(circleRect(x,y,r,w))return true;
-  if(room.stage===2){
+  if(mode(room.stage)===2){
     for(let j=0;j<room.crates.length;j++){
       if(j===ignoreCrate)continue;
       const box=room.crates[j];
@@ -105,7 +107,7 @@ function blocked(room,x,y,r,ignoreCrate=-1){
   return false;
 }
 function pushCrates(room,player,x,y,mx,my){
-  if(room.stage!==2)return false;
+  if(mode(room.stage)!==2)return false;
   for(let i=0;i<room.crates.length;i++){
     const c=room.crates[i];
     if(!circleRect(x,y,RADIUS,rect(c.x-24,c.y-24,48,48)))continue;
@@ -128,37 +130,37 @@ function tryMove(room,p,dx,dy){
 }
 function tick(dt){
   for(const room of rooms.values()){
-    if(room.stage===3)continue;
+    if(room.stage===TOTAL_STAGES)continue;
     for(const p of room.players.values()){
       const length=Math.hypot(p.dx,p.dy);
       if(length>0){const vx=p.dx/Math.max(1,length)*SPEED*dt,vy=p.dy/Math.max(1,length)*SPEED*dt;tryMove(room,p,vx,vy);}
     }
-    if(room.stage===0){
+    if(mode(room.stage)===0){
       const a=occupied(room,PADS[0]);const b=occupied(room,PADS[1]);
-      if(!room.latch && a.some(pa=>b.some(pb=>pa.id!==pb.id))){room.latch=true;announce(room,'좋아! 두 발판을 동시에 눌러서 출구가 열렸어!');}
-    } else if(room.stage===1){
+      if(!room.latch && a.some(pa=>b.some(pb=>pa.id!==pb.id))){room.latch=true;announce(room,'발판 완료');}
+    } else if(mode(room.stage)===1){
       if(!room.keyTaken){
         for(const p of room.players.values()){
           if(Math.hypot(p.x-708,p.y-274)<43){
             room.keyTaken=true;room.keyOwner=p.id;
-            announce(room,p.name+'이(가) 황금 열쇠를 찾았어! 출구로 가자!');break;
+            announce(room,'열쇠 획득: '+p.name);break;
           }
         }
       }
-    } else if(room.stage===2){
+    } else if(mode(room.stage)===2){
       const onTarget=TARGETS.map(target=>room.crates.some(c=>Math.hypot(c.x-target.x,c.y-target.y)<37));
       if(!room.latch && onTarget.every(Boolean)){
-        room.latch=true;announce(room,'딸깍! 상자 두 개가 스위치를 눌렀어!');
+        room.latch=true;announce(room,'상자 퍼즐 완료');
       }
     }
-    const open=room.stage===0?room.latch:room.stage===1?room.keyTaken:room.latch;
+    const open=mode(room.stage)===0?room.latch:mode(room.stage)===1?room.keyTaken:room.latch;
     if(open){
       const atExit=[...room.players.values()].some(p=>p.x>873&&Math.abs(p.y-277)<54);
       if(atExit){
         const current=room.stage;
         resetStage(room,current+1);
-        if(room.stage<3)announce(room,'🎉 방 '+(current+1)+' 탈출 성공! 다음 방으로 이동!');
-        else announce(room,'🏆 전부 탈출 성공! 키위새들의 완벽한 팀워크!');
+        if(room.stage<TOTAL_STAGES)announce(room,'STAGE '+(current+1)+' CLEAR');
+        else announce(room,'ALL STAGES CLEAR');
       }
     }
   }
@@ -183,7 +185,7 @@ function disconnect(ws){
   room.players.delete(ws.pid);
   if(room.keyOwner===ws.pid){room.keyOwner=null;room.keyTaken=false;}
   if(room.players.size===0)rooms.delete(room.id);
-  else announce(room,p.name+'님이 퇴장했습니다.');
+  else announce(room,p.name+' · LEFT');
   ws.room=null;
 }
 wss.on('connection',(ws)=>{
@@ -204,7 +206,7 @@ wss.on('connection',(ws)=>{
       const p={id,name:cleanName(m.name),x:142+(room.players.size%2)*56,y:247+Math.floor(room.players.size/2)*58,dx:0,dy:0,color,ws,lastChat:0,chatWindow:[],lastEmoji:0};
       room.players.set(id,p);ws.room=room;ws.pid=id;
       send(ws,{type:'welcome',id,room:room.id});
-      announce(room,p.name+'님이 참가했습니다. ('+room.players.size+'/4)');
+      announce(room,p.name+' · JOIN ('+room.players.size+'/4)');
       send(ws,packState(room));
       return;
     }
@@ -229,7 +231,7 @@ wss.on('connection',(ws)=>{
       const i=Math.max(0,Math.min(3,Math.floor(Number(m.index)||0)));
       broadcast(room,{type:'bubble',id:p.id,text:options[i]});
     }else if(m.type==='reset'){
-      if(room.stage===3)resetStage(room,0);else resetStage(room);
+      if(room.stage===TOTAL_STAGES)resetStage(room,0);else resetStage(room);
       announce(room,p.name+'님이 퍼즐을 초기화했습니다.');
     }
   });
