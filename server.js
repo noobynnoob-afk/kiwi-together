@@ -1,245 +1,485 @@
-'use strict';
-// KIWI TOGETHER — 2D multiplayer co-op escape-room game.
-// Run: npm install && npm start
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const WebSocket = require('ws');
 
-const PORT = Number(process.env.PORT) || 10000;
-const WIDTH = 960, HEIGHT = 540;
-const TOTAL_STAGES = 30;
-const mode = stage => stage % 3;
-const SPEED = 188, RADIUS = 19;
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const http = require("http");
+const WebSocket = require("ws");
+const crypto = require("crypto");
+
+const PORT = process.env.PORT || 10000;
 const rooms = new Map();
-const indexHTML = fs.readFileSync(path.join(__dirname, 'index.html'));
-const server = http.createServer((req, res) => {
-  if (req.url === '/health') {
-    res.writeHead(200, {'content-type': 'application/json', 'cache-control':'no-store'});
-    res.end(JSON.stringify({ok:true, rooms:rooms.size}));
-    return;
-  }
-  if (req.url === '/' || (req.url || '').startsWith('/?')) {
-    res.writeHead(200, {
-      'content-type':'text/html; charset=utf-8',
-      'cache-control':'no-store',
-      'x-content-type-options':'nosniff',
-      'content-security-policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self' data:"
-    });
-    res.end(indexHTML);
-    return;
-  }
-  res.writeHead(404, {'content-type':'text/plain; charset=utf-8'}); res.end('Not Found');
-});
-const wss = new WebSocket.Server({server, maxPayload: 2048});
+const SPEED = 175;
+const STAGES = 30;
+const COLORS = ["#b6a078", "#c5a6e8", "#9ec9a0", "#e7b08c"];
 
-function rect(x,y,w,h){return {x,y,w,h};}
-const EXIT_TOP = rect(828,65,22,157);
-const EXIT_BOTTOM = rect(828,330,22,158);
-const EXIT_GATE = rect(828,222,22,108);
-const STAGE2_TOP = rect(485,65,24,149);
-const STAGE2_BOTTOM = rect(485,340,24,148);
-const STAGE2_GATE = rect(485,214,24,126);
-const PADS = [{x:285,y:176},{x:285,y:390}];
-const TARGETS = [{x:674,y:189},{x:674,y:381}];
-function code(){let result='';for(let i=0;i<5;i++) result+=CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)];return result;}
-function cleanName(str){return String(str||'').replace(/[\u0000-\u001f\u007f<>]/g,'').trim().slice(0,14) || '키위';}
-function send(ws, data){if(ws && ws.readyState===WebSocket.OPEN){try{ws.send(JSON.stringify(data));}catch(_){}}}
-function broadcast(room,data){for(const p of room.players.values())send(p.ws,data);}
-function announce(room,text){broadcast(room,{type:'notice',text});}
-function resetStage(room,stage=room.stage){
-  room.stage=stage;
-  room.startedAt=Date.now();
-  room.latch=false;
-  room.keyOwner=null;
-  room.keyTaken=false;
-  room.crates=[{x:363,y:189},{x:363,y:381}];
-  let i=0;
-  for(const p of room.players.values()){
-    p.x=142+(i%2)*56; p.y=247+Math.floor(i/2)*58;
-    p.dx=0;p.dy=0;i++;
-  }
-}
-function createRoom(){
-  let id;do{id=code();}while(rooms.has(id));
-  const room={id,players:new Map(),stage:0,latch:false,keyOwner:null,keyTaken:false,crates:[],startedAt:Date.now()};
-  resetStage(room,0);rooms.set(id,room);return room;
-}
-function getWalls(room){
-  const walls=[];
-  if(mode(room.stage)===0){
-    walls.push(rect(423,65,28,168),rect(423,310,28,178));
-    walls.push(EXIT_TOP,EXIT_BOTTOM);
-    if(!room.latch) walls.push(EXIT_GATE);
-  } else if(mode(room.stage)===1){
-    walls.push(STAGE2_TOP,STAGE2_BOTTOM);
-    if(!room.keyTaken && !plateOccupied(room,{x:255,y:410},34)) walls.push(STAGE2_GATE);
-    walls.push(EXIT_TOP,EXIT_BOTTOM);
-    if(!room.keyTaken)walls.push(EXIT_GATE);
-  } else if(mode(room.stage)===2){
-    walls.push(rect(483,243,142,54));
-    walls.push(EXIT_TOP,EXIT_BOTTOM);
-    if(!room.latch)walls.push(EXIT_GATE);
-  }
-  return walls;
-}
-function circleRect(x,y,r,b){
-  const px=Math.max(b.x,Math.min(x,b.x+b.w));
-  const py=Math.max(b.y,Math.min(y,b.y+b.h));
-  return (x-px)**2+(y-py)**2<r*r;
-}
-function occupied(room,point,r=34){
-  return [...room.players.values()].filter(p=>(p.x-point.x)**2+(p.y-point.y)**2 <= r*r);
-}
-function plateOccupied(room,point,r){return occupied(room,point,r).length>0;}
-function blocked(room,x,y,r,ignoreCrate=-1){
-  if(x-r<55||x+r>905||y-r<72||y+r>479) return true;
-  for(const w of getWalls(room))if(circleRect(x,y,r,w))return true;
-  if(mode(room.stage)===2){
-    for(let j=0;j<room.crates.length;j++){
-      if(j===ignoreCrate)continue;
-      const box=room.crates[j];
-      if(circleRect(x,y,r,rect(box.x-24,box.y-24,48,48)))return true;
-    }
-  }
-  return false;
-}
-function pushCrates(room,player,x,y,mx,my){
-  if(mode(room.stage)!==2)return false;
-  for(let i=0;i<room.crates.length;i++){
-    const c=room.crates[i];
-    if(!circleRect(x,y,RADIUS,rect(c.x-24,c.y-24,48,48)))continue;
-    // The player's movement direction pushes a box one step; boxes stop at walls.
-    const bx=c.x+mx*1.12, by=c.y+my*1.12;
-    if(blocked(room,bx,by,25,i))return false;
-    c.x=bx;c.y=by;
-    return true;
-  }
-  return false;
-}
-function tryMove(room,p,dx,dy){
-  if(!dx&&!dy)return;
-  const attemptX=p.x+dx;
-  if(!blocked(room,attemptX,p.y,RADIUS))p.x=attemptX;
-  else if(pushCrates(room,p,attemptX,p.y,dx,0) && !blocked(room,attemptX,p.y,RADIUS))p.x=attemptX;
-  const attemptY=p.y+dy;
-  if(!blocked(room,p.x,attemptY,RADIUS))p.y=attemptY;
-  else if(pushCrates(room,p,p.x,attemptY,0,dy) && !blocked(room,p.x,attemptY,RADIUS))p.y=attemptY;
-}
-function tick(dt){
-  for(const room of rooms.values()){
-    if(room.stage===TOTAL_STAGES)continue;
-    for(const p of room.players.values()){
-      const length=Math.hypot(p.dx,p.dy);
-      if(length>0){const vx=p.dx/Math.max(1,length)*SPEED*dt,vy=p.dy/Math.max(1,length)*SPEED*dt;tryMove(room,p,vx,vy);}
-    }
-    if(mode(room.stage)===0){
-      const a=occupied(room,PADS[0]);const b=occupied(room,PADS[1]);
-      if(!room.latch && a.some(pa=>b.some(pb=>pa.id!==pb.id))){room.latch=true;announce(room,'발판 완료');}
-    } else if(mode(room.stage)===1){
-      if(!room.keyTaken){
-        for(const p of room.players.values()){
-          if(Math.hypot(p.x-708,p.y-274)<43){
-            room.keyTaken=true;room.keyOwner=p.id;
-            announce(room,'열쇠 획득: '+p.name);break;
-          }
-        }
-      }
-    } else if(mode(room.stage)===2){
-      const onTarget=TARGETS.map(target=>room.crates.some(c=>Math.hypot(c.x-target.x,c.y-target.y)<37));
-      if(!room.latch && onTarget.every(Boolean)){
-        room.latch=true;announce(room,'상자 퍼즐 완료');
-      }
-    }
-    const open=mode(room.stage)===0?room.latch:mode(room.stage)===1?room.keyTaken:room.latch;
-    if(open){
-      const atExit=[...room.players.values()].some(p=>p.x>873&&Math.abs(p.y-277)<54);
-      if(atExit){
-        const current=room.stage;
-        resetStage(room,current+1);
-        if(room.stage<TOTAL_STAGES)announce(room,'STAGE '+(current+1)+' CLEAR');
-        else announce(room,'ALL STAGES CLEAR');
-      }
-    }
-  }
-}
-function packState(room){
-  const players=[...room.players.values()].map(p=>({id:p.id,name:p.name,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,color:p.color,look:p.dx<0?-1:1}));
+const layouts = Array.from({ length: STAGES }, (_, n) => {
+  const type = n % 10;
+  const variant = Math.floor(n / 10);
+  const shift = variant * 28;
+  const configs = [
+    { name: "동시 발판", pads: [[230, 160], [230, 380]] },
+    { name: "열쇠 수색", gems: [[690, 270]] },
+    { name: "상자 운반", boxes: [[340, 270]], targets: [[680, 270]] },
+    { name: "세 개의 조각", gems: [[240, 140], [470, 390], [710, 140]] },
+    { name: "갈림길", pads: [[300, 170], [660, 365]] },
+    { name: "네 개의 별", gems: [[200, 130], [730, 130], [200, 400], [730, 400]] },
+    { name: "상자 정렬", boxes: [[330, 180], [330, 360]], targets: [[690, 180], [690, 360]] },
+    { name: "반대편 스위치", pads: [[220, 380], [730, 160]] },
+    { name: "미로 수집", gems: [[260, 130], [700, 400], [470, 270]] },
+    { name: "마지막 협동", pads: [[280, 160], [680, 380]], gems: [[480, 270]] }
+  ];
+  const c = configs[type];
+  const walls = [
+    [[420, 65, 24, 130], [420, 345, 24, 130]],
+    [[480, 65, 24, 145], [480, 340, 24, 135]],
+    [[460, 90, 24, 115], [460, 350, 24, 120]],
+    [[340, 200, 25, 130], [600, 200, 25, 130]],
+    [[450, 65, 24, 170], [450, 315, 24, 160]],
+    [[350, 210, 110, 24], [550, 310, 110, 24]],
+    [[480, 65, 24, 140], [480, 345, 24, 130]],
+    [[360, 235, 24, 125], [610, 130, 24, 125]],
+    [[350, 220, 24, 110], [610, 220, 24, 110]],
+    [[455, 65, 24, 140], [455, 350, 24, 125]]
+  ][type].map(([x,y,w,h]) => ({
+    x: x + (variant === 2 ? 35 : 0),
+    y: y + (variant === 1 ? 25 : 0), w, h
+  }));
+  const point = ([x,y]) => ({
+    x: x + shift,
+    y: Math.min(420, y + (variant === 1 ? 20 : variant === 2 ? -15 : 0))
+  });
   return {
-    type:'state',stage:room.stage,players,
-    latch:room.latch,keyTaken:room.keyTaken,keyOwner:room.keyOwner,
-    plateA:occupied(room,PADS[0]).length>0,plateB:occupied(room,PADS[1]).length>0,
-    stage2Plate:plateOccupied(room,{x:255,y:410},34),
-    boxes:room.crates,
-    targets:TARGETS.map(t=>room.crates.some(c=>Math.hypot(c.x-t.x,c.y-t.y)<37)),
-    seconds:Math.floor((Date.now()-room.startedAt)/1000)
+    name: c.name + " " + (variant + 1),
+    pads: (c.pads || []).map(point),
+    gems: (c.gems || []).map(point),
+    boxes: (c.boxes || []).map(point),
+    targets: (c.targets || []).map(point),
+    walls
+  };
+});
+
+function send(ws, data) {
+  if (ws.readyState === WebSocket.OPEN)
+    ws.send(JSON.stringify(data));
+}
+function broadcast(room, data) {
+  for (const p of room.players.values()) send(p.ws, data);
+}
+function code() {
+  return crypto.randomBytes(4).toString("hex").slice(0, 5).toUpperCase();
+}
+function reset(room, stage = room.stage) {
+  room.stage = stage;
+  room.gems = [];
+  room.boxes = stage < STAGES
+    ? layouts[stage].boxes.map(b => ({...b})) : [];
+  room.open = false;
+  let i = 0;
+  for (const p of room.players.values()) {
+    p.x = 125 + (i % 2) * 55;
+    p.y = 240 + Math.floor(i / 2) * 55;
+    p.vx = p.vy = 0;
+    i++;
+  }
+}
+function createRoom() {
+  let id;
+  do { id = code(); } while (rooms.has(id));
+  const room = {id, players:new Map(), stage:0, gems:[], boxes:[], open:false};
+  rooms.set(id, room);
+  return room;
+}
+function collides(x,y,r,b) {
+  const cx = Math.max(b.x, Math.min(x, b.x+b.w));
+  const cy = Math.max(b.y, Math.min(y, b.y+b.h));
+  return Math.hypot(x-cx,y-cy) < r;
+}
+function blocked(room,x,y,ignore=-1) {
+  if (x < 70 || x > 900 || y < 75 || y > 465) return true;
+  const level = layouts[room.stage];
+  if (!level) return false;
+  const walls = [...level.walls,
+    {x:815,y:65,w:25,h:150},
+    {x:815,y:325,w:25,h:150}
+  ];
+  if (!room.open) walls.push({x:815,y:215,w:25,h:110});
+  if (walls.some(w => collides(x,y,19,w))) return true;
+  return room.boxes.some((b,i) =>
+    i !== ignore && Math.abs(x-b.x)<42 && Math.abs(y-b.y)<42
+  );
+}
+function move(room,p,dx,dy) {
+  const moveAxis = (axis,d) => {
+    if (!d) return;
+    const nx = p.x + (axis==="x"?d:0);
+    const ny = p.y + (axis==="y"?d:0);
+    if (!blocked(room,nx,ny)) {
+      p[axis] += d; return;
+    }
+    for (let i=0;i<room.boxes.length;i++) {
+      const b=room.boxes[i];
+      if (Math.abs(nx-b.x)<43 && Math.abs(ny-b.y)<43) {
+        const bx=b.x+(axis==="x"?d:0);
+        const by=b.y+(axis==="y"?d:0);
+        if (!blocked(room,bx,by,i)) {
+          b.x=bx; b.y=by;
+          if (!blocked(room,nx,ny)) p[axis]+=d;
+        }
+        break;
+      }
+    }
+  };
+  moveAxis("x",dx);
+  moveAxis("y",dy);
+}
+function update(dt) {
+  for (const room of rooms.values()) {
+    const level=layouts[room.stage];
+    if (!level) continue;
+    const players=[...room.players.values()];
+    for (const p of players) {
+      const len=Math.max(1,Math.hypot(p.vx,p.vy));
+      move(room,p,p.vx/len*SPEED*dt,p.vy/len*SPEED*dt);
+    }
+    level.gems.forEach((g,i) => {
+      if (room.gems.includes(i)) return;
+      if (players.some(p=>Math.hypot(p.x-g.x,p.y-g.y)<35))
+        room.gems.push(i);
+    });
+    const occupied=level.pads.map(pt =>
+      players.filter(p=>Math.hypot(p.x-pt.x,p.y-pt.y)<35).map(p=>p.id)
+    );
+    const padsOK=!level.pads.length || (
+      occupied.every(ids=>ids.length>0) &&
+      (occupied.length<2 ||
+       occupied[0].some(a=>occupied[1].some(b=>a!==b)))
+    );
+    const gemsOK=room.gems.length===level.gems.length;
+    const boxesOK=level.targets.every(t=>
+      room.boxes.some(b=>Math.hypot(b.x-t.x,b.y-t.y)<38)
+    );
+    room.open=padsOK&&gemsOK&&boxesOK;
+    if (room.open && players.some(p=>p.x>870&&Math.abs(p.y-270)<65)) {
+      reset(room,room.stage+1);
+      broadcast(room,{type:"notice",text:room.stage>=STAGES?
+        "ALL CLEAR":"STAGE "+room.stage+" CLEAR"});
+    }
+  }
+}
+function state(room) {
+  const level=layouts[room.stage];
+  return {
+    type:"state", stage:room.stage, open:room.open,
+    players:[...room.players.values()].map(p=>({
+      id:p.id,name:p.name,x:p.x,y:p.y,color:p.color
+    })),
+    level:level?{
+      ...level, boxes:room.boxes,
+      gems:level.gems.map((g,i)=>({...g,taken:room.gems.includes(i)}))
+    }:null
   };
 }
-function disconnect(ws){
-  if(!ws.room)return;
-  const room=ws.room;
-  const p=room.players.get(ws.pid);
-  if(!p)return;
-  room.players.delete(ws.pid);
-  if(room.keyOwner===ws.pid){room.keyOwner=null;room.keyTaken=false;}
-  if(room.players.size===0)rooms.delete(room.id);
-  else announce(room,p.name+' · LEFT');
-  ws.room=null;
+
+const html = `<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>KIWI TOGETHER</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#172b22;font-family:Arial,sans-serif;color:white}
+button,input{font:inherit}
+button{cursor:pointer;background:#315a45;color:white;border:1px solid #789e82;padding:9px}
+#game{position:absolute;inset:0;display:none;overflow:hidden}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+#menu{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#20382d}
+.panel{background:#294635;padding:25px;width:min(360px,90vw);text-align:center}
+.panel input{display:block;width:100%;margin:12px 0;padding:12px;background:#e9eee7;border:0;color:#222}
+.panel button{width:100%;margin:5px 0}
+#top{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:5px;align-items:center;pointer-events:none}
+#top>*{pointer-events:auto}
+#title{font-size:13px;background:#1c372bbd;padding:9px}
+#room{margin-left:auto}
+#chat{position:absolute;right:8px;top:55px;width:min(270px,48vw);height:230px;background:#152b23e8;display:none;flex-direction:column;padding:8px}
+#messages{flex:1;overflow:auto;font-size:12px;overflow-wrap:anywhere}
+#chatInput{width:100%;background:#dfe8de;border:0;padding:8px;color:#222}
+#joy{position:absolute;bottom:20px;left:24px;width:125px;height:125px;border-radius:50%;border:2px solid #ffffff55;background:#ffffff19;touch-action:none;display:grid;place-items:center}
+#stick{width:53px;height:53px;border-radius:50%;background:#d3e6d77d;pointer-events:none;transform:translate(0,0)}
+#help{position:absolute;bottom:9px;right:10px;background:#1736297a;padding:6px;font-size:10px;color:#ffffffb8}
+#notice{position:absolute;top:52px;left:50%;transform:translateX(-50%);font-size:12px;background:#203e32c9;padding:7px;display:none}
+@media(orientation:portrait) and (max-width:900px){
+#game{width:100dvh;height:100dvw;inset:auto;left:100dvw;top:0;transform-origin:top left;transform:rotate(90deg)}
+#menu{transform:none}
 }
-wss.on('connection',(ws)=>{
-  ws.isAlive=true;
-  ws.on('pong',()=>{ws.isAlive=true;});
-  ws.on('message',(raw)=>{
-    let m;
-    try{m=JSON.parse(raw.toString());}catch(_){return;}
-    if(!m||typeof m!=='object')return;
-    if(m.type==='join'&&!ws.room){
-      const request=String(m.room||'').toUpperCase().replace(/[^A-Z2-9]/g,'').slice(0,5);
-      let room;
-      if(request){room=rooms.get(request);if(!room){send(ws,{type:'error',text:'해당 방을 찾을 수 없습니다. 코드를 확인하세요.'});return;}}
-      else room=createRoom();
-      if(room.players.size>=4){send(ws,{type:'error',text:'참가 인원은 최대 4명입니다.'});return;}
-      const id=crypto.randomUUID();
-      const color=['#d4b488','#cbb0f1','#9fd3b2','#f3ad98'][room.players.size%4];
-      const p={id,name:cleanName(m.name),x:142+(room.players.size%2)*56,y:247+Math.floor(room.players.size/2)*58,dx:0,dy:0,color,ws,lastChat:0,chatWindow:[],lastEmoji:0};
-      room.players.set(id,p);ws.room=room;ws.pid=id;
-      send(ws,{type:'welcome',id,room:room.id});
-      announce(room,p.name+' · JOIN ('+room.players.size+'/4)');
-      send(ws,packState(room));
-      return;
-    }
-    if(!ws.room)return;
-    const room=ws.room,p=room.players.get(ws.pid);if(!p)return;
-    if(m.type==='move'){
-      const x=Number(m.x),y=Number(m.y);
-      if(!Number.isFinite(x)||!Number.isFinite(y))return;
-      p.dx=Math.max(-1,Math.min(1,x));p.dy=Math.max(-1,Math.min(1,y));
-    }else if(m.type==='chat'){
-      const now=Date.now();
-      p.chatWindow=p.chatWindow.filter(t=>now-t<5000);
-      if(now-p.lastChat<350||p.chatWindow.length>=6)return;
-      const message=String(m.text||'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,120);
-      if(!message)return;
-      p.lastChat=now;p.chatWindow.push(now);
-      broadcast(room,{type:'chat',id:p.id,name:p.name,text:message,time:now});
-    }else if(m.type==='emote'){
-      if(Date.now()-p.lastEmoji<1200)return;
-      p.lastEmoji=Date.now();
-      const options=['삐약!','여기야!','도와줘!','ㅋㅋㅋㅋ'];
-      const i=Math.max(0,Math.min(3,Math.floor(Number(m.index)||0)));
-      broadcast(room,{type:'bubble',id:p.id,text:options[i]});
-    }else if(m.type==='reset'){
-      if(room.stage===TOTAL_STAGES)resetStage(room,0);else resetStage(room);
-      announce(room,p.name+'님이 퍼즐을 초기화했습니다.');
-    }
-  });
-  ws.on('close',()=>disconnect(ws));
-  ws.on('error',()=>disconnect(ws));
+</style></head><body>
+<div id="menu"><div class="panel">
+<h2>KIWI TOGETHER</h2>
+<input id="name" placeholder="PLAYER NAME" maxlength="14">
+<input id="code" placeholder="ROOM CODE (선택)" maxlength="5">
+<button id="start">CREATE / JOIN</button>
+<div id="error" style="font-size:12px;color:#ffc1ae"></div>
+</div></div>
+<div id="game">
+<canvas id="canvas" width="960" height="540"></canvas>
+<div id="top">
+<span id="title">STAGE 01 / 30</span>
+<button id="room">ROOM</button>
+<button id="invite">INVITE</button>
+<button id="chatBtn">CHAT</button>
+</div>
+<div id="notice"></div>
+<div id="chat"><div id="messages"></div><input id="chatInput" placeholder="Message · Enter"></div>
+<div id="joy"><div id="stick"></div></div>
+<div id="help">WASD / 방향키 · 이동</div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const canvas=$("canvas"),ctx=canvas.getContext("2d");
+let ws,id=null,room="",state=null,joyX=0,joyY=0,activePointer=null;
+let keys=new Set(),localPos=null,lastFrame=performance.now();
+let bubbles=new Map(),nickname="";
+const qp=new URLSearchParams(location.search);
+$("code").value=qp.get("room")||"";
+$("start").onclick=()=>{
+ nickname=$("name").value.trim()||"KIWI";
+ ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host);
+ $("error").textContent="CONNECTING";
+ ws.onopen=()=>ws.send(JSON.stringify({type:"join",name:nickname,room:$("code").value.trim()}));
+ ws.onmessage=e=>{
+  let m;try{m=JSON.parse(e.data)}catch{return}
+  if(m.type==="welcome"){
+   id=m.id;room=m.room;$("menu").style.display="none";
+   $("game").style.display="block";$("room").textContent=room;
+   localPos=null;
+  }else if(m.type==="state"){
+   state=m;
+   const self=m.players.find(p=>p.id===id);
+   if(self&&!localPos)localPos={x:self.x,y:self.y};
+   $("title").textContent=m.stage>=30?"ALL CLEAR":
+    "STAGE "+String(m.stage+1).padStart(2,"0")+" / 30 · "+m.level.name;
+  }else if(m.type==="chat"){
+   addChat(m.name+": "+m.text);
+   bubbles.set(m.id,{text:m.text,until:Date.now()+3500});
+  }else if(m.type==="notice"){
+   $("notice").textContent=m.text;$("notice").style.display="block";
+   setTimeout(()=>$("notice").style.display="none",1800);
+  }else if(m.type==="error"){$("error").textContent=m.text;ws.close()}
+ };
+ ws.onclose=()=>{if(id)$("notice").textContent="DISCONNECTED";};
+};
+function addChat(text){
+ const d=document.createElement("div");d.textContent=text;
+ $("messages").appendChild(d);$("messages").scrollTop=$("messages").scrollHeight;
+}
+$("chatBtn").onclick=()=>{$("chat").style.display=$("chat").style.display==="flex"?"none":"flex"};
+$("chatInput").addEventListener("keydown",e=>{
+ if(e.key==="Enter"){
+  const text=e.target.value.trim();
+  if(text&&ws?.readyState===1)ws.send(JSON.stringify({type:"chat",text}));
+  e.target.value="";e.preventDefault();
+ }
+});
+$("invite").onclick=()=>{
+ const url=location.origin+"/?room="+room;
+ navigator.clipboard?.writeText(url).then(()=>{
+  $("notice").textContent="LINK COPIED";$("notice").style.display="block";
+  setTimeout(()=>$("notice").style.display="none",1500);
+ }).catch(()=>prompt("INVITE LINK",url));
+};
+$("room").onclick=()=>prompt("ROOM CODE",room);
+const joy=$("joy"),stick=$("stick");
+function joyMove(e){
+ const r=joy.getBoundingClientRect();
+ let dx=e.clientX-(r.left+r.width/2);
+ let dy=e.clientY-(r.top+r.height/2);
+ if(matchMedia("(orientation:portrait) and (max-width:900px)").matches){
+  const a=dx;dx=dy;dy=-a;
+ }
+ const length=Math.hypot(dx,dy),max=43;
+ joyX=length>4?dx/Math.max(max,length):0;
+ joyY=length>4?dy/Math.max(max,length):0;
+ const sx=joyX*max,sy=joyY*max;
+ stick.style.transform="translate("+sx+"px,"+sy+"px)";
+}
+joy.addEventListener("pointerdown",e=>{
+ e.preventDefault();activePointer=e.pointerId;
+ try{joy.setPointerCapture(e.pointerId)}catch{}
+ joyMove(e);
+});
+joy.addEventListener("pointermove",e=>{
+ if(e.pointerId===activePointer){e.preventDefault();joyMove(e)}
+});
+function release(e){
+ if(e.pointerId!==activePointer)return;
+ activePointer=null;joyX=joyY=0;
+ stick.style.transform="translate(0,0)";
+}
+window.addEventListener("pointerup",release);
+window.addEventListener("pointercancel",release);
+window.addEventListener("blur",()=>{keys.clear();joyX=joyY=0});
+document.addEventListener("keydown",e=>{
+ if(document.activeElement?.tagName==="INPUT")return;
+ const k=e.key.toLowerCase();keys.add(k);
+ if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
+});
+document.addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
+function input(){
+ const x=joyX+(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0);
+ const y=joyY+(keys.has("s")||keys.has("arrowdown")?1:0)-(keys.has("w")||keys.has("arrowup")?1:0);
+ const length=Math.max(1,Math.hypot(x,y));
+ return {x:x/length,y:y/length};
+}
+setInterval(()=>{
+ if(ws?.readyState===1&&id)ws.send(JSON.stringify({type:"move",...input()}));
+},40);
+function rect(x,y,w,h,color){
+ ctx.fillStyle=color;ctx.fillRect(x,y,w,h);
+}
+function circle(x,y,r,color){
+ ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+ ctx.fillStyle=color;ctx.fill();
+}
+function text(str,x,y,size,color="#263d2e"){
+ ctx.fillStyle=color;ctx.font="bold "+size+"px Arial";
+ ctx.textAlign="center";ctx.fillText(str,x,y);
+}
+function kiwi(p){
+ const x=p.x,y=p.y;
+ ctx.save();ctx.translate(x,y);
+ circle(0,3,24,"#765a3e");
+ circle(0,0,22,p.color||"#b6a078");
+ circle(-8,-5,3,"#222");circle(8,-5,3,"#222");
+ ctx.fillStyle="#e9a54c";ctx.beginPath();
+ ctx.moveTo(-5,4);ctx.lineTo(0,14);ctx.lineTo(6,4);ctx.fill();
+ circle(-15,16,5,"#a87b48");circle(15,16,5,"#a87b48");
+ ctx.restore();
+ text(p.name||"KIWI",x,y-33,13,"#284632");
+ const b=bubbles.get(p.id);
+ if(b&&b.until>Date.now()){
+  const width=Math.min(180,Math.max(65,b.text.length*8+15));
+  rect(x-width/2,y-75,width,26,"#244637");
+  text(b.text.slice(0,22),x,y-57,12,"#ffffff");
+ }
+}
+function render(t){
+ const dt=Math.min(.05,(t-lastFrame)/1000);lastFrame=t;
+ ctx.clearRect(0,0,960,540);
+ rect(0,0,960,540,"#c7d8bd");
+ rect(50,55,860,430,"#e5ead2");
+ for(let x=65;x<900;x+=48)
+  for(let y=70;y<480;y+=48)circle(x,y,2,"#c9d5b9");
+ rect(50,55,860,12,"#55785c");
+ rect(50,473,860,12,"#55785c");
+ rect(50,55,12,430,"#55785c");
+ rect(900,55,12,430,"#55785c");
+ if(state){
+  const level=state.level;
+  if(level){
+   for(const w of level.walls)
+    rect(w.x,w.y,w.w,w.h,"#708f75");
+   for(const p of level.pads){
+    const pressed=state.players.some(q=>Math.hypot(q.x-p.x,q.y-p.y)<35);
+    circle(p.x,p.y,30,pressed?"#5bb978":"#8ba4a1");
+    text("SW",p.x,p.y+5,13,"#ffffff");
+   }
+   for(const g of level.gems)if(!g.taken){
+    circle(g.x,g.y,13,"#e7b744");
+    circle(g.x-3,g.y-4,5,"#fff1ad");
+   }
+   for(const p of level.targets){
+    rect(p.x-29,p.y-29,58,58,"#a1b7a0");
+    rect(p.x-24,p.y-24,48,48,"#dce5cc");
+   }
+   for(const b of level.boxes){
+    rect(b.x-24,b.y-24,48,48,"#9d6f46");
+    rect(b.x-18,b.y-18,36,36,"#c59a69");
+   }
+   rect(815,65,25,150,"#55785c");
+   rect(815,325,25,160,"#55785c");
+   rect(815,215,25,110,state.open?"#a2d8a4":"#ac665e");
+   text("EXIT",870,205,17);
+  }
+  const self=state.players.find(p=>p.id===id);
+  if(self){
+   if(!localPos)localPos={x:self.x,y:self.y};
+   const error=Math.hypot(localPos.x-self.x,localPos.y-self.y);
+   if(error>65){localPos.x=self.x;localPos.y=self.y}
+   else{
+    localPos.x+=(self.x-localPos.x)*Math.min(1,dt*12);
+    localPos.y+=(self.y-localPos.y)*Math.min(1,dt*12);
+   }
+   const v=input();
+   localPos.x+=v.x*SPEED*dt;
+   localPos.y+=v.y*SPEED*dt;
+  }
+  for(const p of state.players){
+   if(p.id===id)continue;
+   kiwi(p);
+  }
+  if(self&&localPos)kiwi({...self,x:localPos.x,y:localPos.y});
+  if(state.stage>=30)text("ALL CLEAR",480,270,48);
+ }else{
+  text("CONNECTING",480,270,26);
+ }
+ requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+</script></body></html>`;
+
+const server = http.createServer((req,res)=>{
+ if(req.url==="/health"){
+  res.writeHead(200,{"Content-Type":"application/json"});
+  return res.end(JSON.stringify({ok:true,rooms:rooms.size}));
+ }
+ res.writeHead(200,{"Content-Type":"text/html; charset=utf-8"});
+ res.end(html);
+});
+const wss = new WebSocket.Server({server});
+
+wss.on("connection",ws=>{
+ ws.on("message",raw=>{
+  let m;try{m=JSON.parse(raw)}catch{return}
+  if(m.type==="join"&&!ws.room){
+   const requested=String(m.room||"").trim().toUpperCase();
+   const room=requested?rooms.get(requested):createRoom();
+   if(!room)return send(ws,{type:"error",text:"ROOM NOT FOUND"});
+   if(room.players.size>=4)return send(ws,{type:"error",text:"ROOM FULL"});
+   const id=crypto.randomUUID(),i=room.players.size;
+   const p={
+    id,name:String(m.name||"KIWI").slice(0,14),
+    x:125+i%2*55,y:240+Math.floor(i/2)*55,
+    vx:0,vy:0,color:COLORS[i],ws,lastChat:0
+   };
+   room.players.set(id,p);ws.room=room;ws.pid=id;
+   send(ws,{type:"welcome",id,room:room.id});
+   broadcast(room,{type:"notice",text:p.name+" · JOIN"});
+   return;
+  }
+  const room=ws.room,p=room?.players.get(ws.pid);
+  if(!p)return;
+  if(m.type==="move"){
+   p.vx=Math.max(-1,Math.min(1,Number(m.x)||0));
+   p.vy=Math.max(-1,Math.min(1,Number(m.y)||0));
+  }
+  if(m.type==="chat"){
+   if(Date.now()-p.lastChat<350)return;
+   const text=String(m.text||"").trim().slice(0,120);
+   if(!text)return;
+   p.lastChat=Date.now();
+   broadcast(room,{type:"chat",id:p.id,name:p.name,text});
+  }
+ });
+ ws.on("close",()=>{
+  const room=ws.room;
+  if(!room)return;
+  const p=room.players.get(ws.pid);
+  room.players.delete(ws.pid);
+  if(p)broadcast(room,{type:"notice",text:p.name+" · LEFT"});
+  if(!room.players.size)rooms.delete(room.id);
+ });
 });
 let last=Date.now();
-setInterval(()=>{const now=Date.now(),dt=Math.min((now-last)/1000,0.07);last=now;tick(dt);},33);
-setInterval(()=>{for(const room of rooms.values())broadcast(room,packState(room));},80);
-setInterval(()=>{for(const ws of wss.clients){if(!ws.isAlive){ws.terminate();continue;}ws.isAlive=false;ws.ping();}},30000);
-server.listen(PORT,'0.0.0.0',()=>console.log('KIWI TOGETHER running on port '+PORT));
+setInterval(()=>{
+ const now=Date.now(),dt=Math.min(.05,(now-last)/1000);last=now;
+ update(dt);
+},33);
+setInterval(()=>{
+ for(const room of rooms.values())broadcast(room,state(room));
+},80);
+server.listen(PORT,"0.0.0.0",()=>console.log("KIWI TOGETHER",PORT));
