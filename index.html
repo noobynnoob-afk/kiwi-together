@@ -432,27 +432,22 @@ function drawScene(t){
     for(let i=0;i<18;i++){ctx.fillStyle=['#ffcf85','#d4efca','#f2aac1','#d9d4f5'][i%4];ctx.save();ctx.translate(90+(i*73)%777,120+(i*113)%320);ctx.rotate(t/1000+i);ctx.fillRect(-5,-3,10,6);ctx.restore();}
   }
   if(s.stage<30){wall(EXIT_TOP);wall(EXIT_BOTTOM);if(!s.latch && (s.stage%3!==1||!s.keyTaken))drawGate(828,222,108,false);else drawGate(828,222,108,true);exitDoor(s.latch||s.keyTaken);}
-  const visible=Array.isArray(s.players)?s.players:[];
-  for(const p of visible){
-    if(String(p.id)===String(myId))continue;
-    try{kiwi(p,t);}catch(err){console.warn('player draw',err);}
-  }
-  const own=visible.find(p=>String(p.id)===String(myId));
-  // Local avatar is rendered after the scene, even when an earlier draw operation fails.
-
-  if(!own&&!localVisual){
-    kiwi({id:myId,x:142,y:247,name:playerName||'KIWI',color:'#d4b488'},t);
-  }
-  if(visible.length<2&&s.stage<30){roundRect(275,459,410,29,11,'#3c5e48d9');text('2인 협동 구간',480,473,14,'#f8ffe9');}
-  }catch(err){
-    console.error('scene render',err);
-  }finally{
-    const own=(state?.players||[]).find(p=>String(p.id)===String(myId));
-    const pos=localVisual||own||{x:142,y:247};
+  if((s.players||[]).length<2&&s.stage<30){roundRect(275,459,410,29,11,'#3c5e48d9');text('2인 협동 구간',480,473,14,'#f8ffe9');}
+  }catch(err){console.error('scene render',err);}
+  // Always draw avatars last. A scene drawing error must not hide teammates.
+  const players=Array.isArray(state?.players)?state.players:[];
+  for(const other of players){
+    if(String(other.id)===String(myId))continue;
     ctx.save();
-    try{kiwi({id:myId,x:pos.x,y:pos.y,name:playerName||own?.name||'KIWI',color:own?.color||'#d4b488'},t);}catch(e){console.error('avatar',e);}
-    ctx.restore();
+    try{kiwi({...other,x:Number(other.x),y:Number(other.y)},t);}catch(e){console.error('remote avatar',e,other);}
+    finally{ctx.restore();}
   }
+  const own=players.find(p=>String(p.id)===String(myId));
+  const pos=localVisual||own||{x:142,y:247};
+  ctx.save();
+  try{kiwi({id:myId,x:pos.x,y:pos.y,name:playerName||own?.name||'KIWI',color:own?.color||'#d4b488'},t);}
+  catch(e){console.error('local avatar',e);}
+  finally{ctx.restore();}
 }
 requestAnimationFrame(drawScene);
 })();
