@@ -138,7 +138,7 @@ html,body{height:100%;overflow-x:hidden}
 const $=id=>document.getElementById(id);
 const canvas=$('board'),ctx=canvas.getContext('2d');
 let socket=null,myId='',roomCode='',playerName='',joinMode=false,joined=false;
-let state=null,keys=new Set(),joyX=0,joyY=0,joyPointer=null,toastTimer=0,unread=0,lastInput='',lastChatBubbles=new Map();
+let localVisual=null,visualTime=0;let state=null,keys=new Set(),joyX=0,joyY=0,joyPointer=null,toastTimer=0,unread=0,lastInput='',lastChatBubbles=new Map();
 const params=new URLSearchParams(window.location.search);
 if(params.has('room')){joinMode=true;$('roomInput').value=(params.get('room')||'').toUpperCase().slice(0,5);}
 try{$('nameInput').value=localStorage.getItem('kiwi_name')||'';}catch(e){}
@@ -154,12 +154,24 @@ function startConnection(retry){
   ws.addEventListener('message',ev=>{
     let m;try{m=JSON.parse(ev.data);}catch(e){return;}
     if(m.type==='welcome'){
-      myId=m.id;roomCode=m.room;joined=true;
+      myId=m.id;roomCode=m.room;joined=true;localVisual={x:142,y:247};visualTime=performance.now();
       $('menu').classList.add('hidden');$('game').classList.remove('hidden');$('reconnect').classList.add('hidden');$('startBtn').disabled=false;
       $('roomCode').textContent=roomCode;
       try{history.replaceState(null,'',location.pathname+'?room='+roomCode);}catch(e){}
       addSystem('ROOM '+roomCode);
-    }else if(m.type==='state'){state=m;renderHUD(m);}
+    }else if(m.type==='state'){
+      state=m;
+      const own=(m.players||[]).find(p=>String(p.id)===String(myId));
+      if(own){
+        if(!localVisual)localVisual={x:Number(own.x),y:Number(own.y)};
+        else{
+          const error=Math.hypot(localVisual.x-own.x,localVisual.y-own.y);
+          if(error>90)localVisual={x:Number(own.x),y:Number(own.y)};
+          else{localVisual.x+=(own.x-localVisual.x)*.38;localVisual.y+=(own.y-localVisual.y)*.38;}
+        }
+      }
+      renderHUD(m);
+    }
     else if(m.type==='chat'){addChat(m);lastChatBubbles.set(m.id,{text:m.text,time:Date.now()});}
     else if(m.type==='notice'){addSystem(m.text);showToast(m.text);}
     else if(m.type==='bubble'){lastChatBubbles.set(m.id,{text:m.text,time:Date.now()});}
@@ -187,7 +199,7 @@ $('retryBtn').addEventListener('click',()=>{if(!roomCode){leave();return;}joinMo
 function leave(){
   joined=false;const previous=socket;socket=null;if(previous)previous.close();
   $('game').classList.add('hidden');$('menu').classList.remove('hidden');$('reconnect').classList.add('hidden');$('chatLog').replaceChildren();
-  $('chatPanel').classList.remove('open');$('roomInput').value='';roomCode='';state=null;keys.clear();joyX=0;joyY=0;setMode(false);
+  $('chatPanel').classList.remove('open');$('roomInput').value='';roomCode='';state=null;localVisual=null;keys.clear();joyX=0;joyY=0;setMode(false);
   try{history.replaceState(null,'',location.pathname);}catch(e){}
 }
 $('leaveBtn').addEventListener('click',leave);
@@ -380,6 +392,14 @@ function kiwi(p,elapsed){
 function drawScene(t){
   requestAnimationFrame(drawScene);
   if(!joined)return;
+  const elapsedSec=Math.min(.05,Math.max(0,(t-visualTime)/1000));visualTime=t;
+  if(localVisual){
+    const vx=Number(keys.has('right'))-Number(keys.has('left'))+joyX;
+    const vy=Number(keys.has('down'))-Number(keys.has('up'))+joyY;
+    const length=Math.max(1,Math.hypot(vx,vy));
+    localVisual.x=Math.max(55,Math.min(900,localVisual.x+vx/length*185*elapsedSec));
+    localVisual.y=Math.max(60,Math.min(490,localVisual.y+vy/length*185*elapsedSec));
+  }
   if(!state){ctx.fillStyle='#d3e4c5';ctx.fillRect(0,0,960,540);kiwi({id:myId,x:142,y:247,name:playerName,color:'#d4b488'},t);return;}
   try{ctx.clearRect(0,0,960,540);floor();
   const s=state;
@@ -413,8 +433,16 @@ function drawScene(t){
   }
   if(s.stage<30){wall(EXIT_TOP);wall(EXIT_BOTTOM);if(!s.latch && (s.stage%3!==1||!s.keyTaken))drawGate(828,222,108,false);else drawGate(828,222,108,true);exitDoor(s.latch||s.keyTaken);}
   const visible=Array.isArray(s.players)?s.players:[];
-  for(const p of visible){try{kiwi(p,t);}catch(err){console.warn('player draw',err);}}
-  if(!visible.some(p=>String(p.id)===String(myId))){
+  for(const p of visible){
+    if(String(p.id)===String(myId))continue;
+    try{kiwi(p,t);}catch(err){console.warn('player draw',err);}
+  }
+  const own=visible.find(p=>String(p.id)===String(myId));
+  if(own||localVisual){
+    const pos=localVisual||own;
+    kiwi({...own,id:myId,x:pos.x,y:pos.y,name:playerName||own?.name||'KIWI',color:own?.color||'#d4b488'},t);
+  }
+  if(!own&&!localVisual){
     kiwi({id:myId,x:142,y:247,name:playerName||'KIWI',color:'#d4b488'},t);
   }
   if(visible.length<2&&s.stage<30){roundRect(275,459,410,29,11,'#3c5e48d9');text('2인 협동 구간',480,473,14,'#f8ffe9');}
