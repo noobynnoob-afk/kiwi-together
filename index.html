@@ -400,7 +400,7 @@ function drawScene(t){
     localVisual.x=Math.max(55,Math.min(900,localVisual.x+vx/length*185*elapsedSec));
     localVisual.y=Math.max(60,Math.min(490,localVisual.y+vy/length*185*elapsedSec));
   }
-  if(!state){ctx.fillStyle='#d3e4c5';ctx.fillRect(0,0,960,540);kiwi({id:myId,x:142,y:247,name:playerName,color:'#d4b488'},t);return;}
+  if(!state){ctx.fillStyle='#d3e4c5';ctx.fillRect(0,0,960,540);kiwi({id:myId,x:localVisual?.x??142,y:localVisual?.y??247,name:playerName,color:'#d4b488'},t);return;}
   try{ctx.clearRect(0,0,960,540);floor();
   const s=state;
   // ground art/landmarks
@@ -438,17 +438,20 @@ function drawScene(t){
     try{kiwi(p,t);}catch(err){console.warn('player draw',err);}
   }
   const own=visible.find(p=>String(p.id)===String(myId));
-  if(own||localVisual){
-    const pos=localVisual||own;
-    kiwi({...own,id:myId,x:pos.x,y:pos.y,name:playerName||own?.name||'KIWI',color:own?.color||'#d4b488'},t);
-  }
+  // Local avatar is rendered after the scene, even when an earlier draw operation fails.
+
   if(!own&&!localVisual){
     kiwi({id:myId,x:142,y:247,name:playerName||'KIWI',color:'#d4b488'},t);
   }
   if(visible.length<2&&s.stage<30){roundRect(275,459,410,29,11,'#3c5e48d9');text('2인 협동 구간',480,473,14,'#f8ffe9');}
   }catch(err){
     console.error('scene render',err);
-    try{kiwi({id:myId,x:142,y:247,name:playerName||'KIWI',color:'#d4b488'},t);}catch(_){}
+  }finally{
+    const own=(state?.players||[]).find(p=>String(p.id)===String(myId));
+    const pos=localVisual||own||{x:142,y:247};
+    ctx.save();
+    try{kiwi({id:myId,x:pos.x,y:pos.y,name:playerName||own?.name||'KIWI',color:own?.color||'#d4b488'},t);}catch(e){console.error('avatar',e);}
+    ctx.restore();
   }
 }
 requestAnimationFrame(drawScene);
