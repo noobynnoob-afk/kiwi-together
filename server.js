@@ -162,8 +162,13 @@ function tick(dt){
    (level.pads.length<2||padOwners[0].some(a=>padOwners[1].some(b=>a.id!==b.id))));
   const itemsOK=room.collected.length===level.items.length;
   const boxesOK=level.targets.every(t=>room.crates.some(c=>Math.hypot(c.x-t.x,c.y-t.y)<39));
-  room.latch=level.need==='pads'?padsOK:level.need==='items'?itemsOK:level.need==='crates'?boxesOK:padsOK&&itemsOK;
-  if(room.latch&&[...room.players.values()].some(p=>p.x>873&&Math.abs(p.y-277)<54)){
+  // Once the cooperative puzzle is solved, keep the exit unlocked.
+  // Players can step off their switches and walk to the door.
+  const solved=level.need==='pads'?padsOK:level.need==='items'?itemsOK:level.need==='crates'?boxesOK:padsOK&&itemsOK;
+  if(solved)room.latch=true;
+  // Every connected player must reach the exit before advancing.
+  const party=[...room.players.values()];
+  if(room.latch&&party.length>=2&&party.every(p=>p.x>873&&Math.abs(p.y-277)<54)){
    const current=room.stage;resetStage(room,current+1);
    announce(room,current+1===TOTAL_STAGES?'ALL STAGES CLEAR':'STAGE '+(current+1)+' CLEAR');
   }
