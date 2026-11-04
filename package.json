@@ -1,16 +1,1 @@
-
-{
-  "name": "kiwi-together",
-  "version": "2.0.0",
-  "private": true,
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "ws": "^8.18.3"
-  }
-}
+{"name":"kiwi-together","version":"2.1.0","private":true,"scripts":{"start":"node server.js"},"dependencies":{"ws":"^8.18.3"}}

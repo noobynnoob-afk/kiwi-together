@@ -212,10 +212,8 @@ $('resetBtn').addEventListener('click',()=>{if(confirm('퍼즐을 초기화하�
 $('replayBtn').addEventListener('click',()=>message('reset'));
 function renderHUD(s){
   const complete=s.stage>=30;
-  const names=['동시 발판','열쇠와 스위치','상자 이동'];
-  const variant=Math.floor(s.stage/3)+1;
   $('stageTag').textContent=complete?'COMPLETE':`STAGE ${String(s.stage+1).padStart(2,'0')} / 30`;
-  $('stageTitle').textContent=complete?'ALL CLEAR':names[s.stage%3]+` ${variant}`;
+  $('stageTitle').textContent=complete?'ALL CLEAR':(s.level?.title||'ESCAPE');
   $('stageDesc').textContent='';
   $('playerCount').textContent=(s.players||[]).length+' / 4';
   const seconds=Number(s.seconds)||0;
@@ -406,33 +404,26 @@ function drawScene(t){
   // ground art/landmarks
   roundRect(71,243,110,73,20,'#eaf0c9bb');
   text('START',124,279,16,'#86a28c');
-  if(s.stage>=30){
-    text('ALL CLEAR',480,260,44,'#38664a');
-  }else if(s.stage%3===0){
-    for(const w of [{x:423,y:65,w:28,h:168},{x:423,y:310,w:28,h:178}])wall(w);
-    pad(285,176,s.plateA,'①');pad(285,390,s.plateB,'②');
-    text(s.latch?'출구가 열렸어!':'동시에 밟아!',609,93,23,s.latch?'#5b9967':'#7a956e');
-    if(s.latch){ctx.fillStyle='#a0d19d88';roundRect(580,164,165,228,28,'#d5edbd55');}
-  }else if(s.stage%3===1){
-    wall({x:485,y:65,w:24,h:149});wall({x:485,y:340,w:24,h:148});
-    const doorOpen=s.stage2Plate||s.keyTaken;
-    drawGate(485,214,126,doorOpen);
-    pad(255,410,s.stage2Plate||s.keyTaken,'HOLD');
-    if(!s.keyTaken){keyShape(708,274);text('황금 열쇠',706,219,18,'#8f773b');}
-    else {const owner=(s.players||[]).find(p=>p.id===s.keyOwner);if(owner)keyShape(owner.x+23,owner.y-23);}
-    text(doorOpen?'문이 열렸어!':'버튼을 밟자!',340,85,20,doorOpen?'#58986c':'#78956e');
-  }else if(s.stage%3===2){
-    wall({x:483,y:243,w:142,h:54});
-    for(let i=0;i<2;i++){
-      pad(674,i===0?189:381,(s.targets||[])[i],'BOX');
+  if(s.stage>=30){text('ALL CLEAR',480,260,44,'#38664a');}
+  else if(s.level){
+    const level=s.level;
+    for(const w of level.walls||[])wall(w);
+    for(const pt of level.pads||[]){
+      const on=(s.players||[]).some(p=>Math.hypot(p.x-pt.x,p.y-pt.y)<35);
+      pad(pt.x,pt.y,on,'SW');
     }
-    for(const b of (s.boxes||[]))crate(b.x,b.y);
-    text(s.latch?'둘 다 성공!':'상자를 밀어줘!',603,91,21,s.latch?'#579666':'#78966b');
-  }else if(s.stage>=30){
-    for(let i=0;i<18;i++){ctx.fillStyle=['#ffcf85','#d4efca','#f2aac1','#d9d4f5'][i%4];ctx.save();ctx.translate(90+(i*73)%777,120+(i*113)%320);ctx.rotate(t/1000+i);ctx.fillRect(-5,-3,10,6);ctx.restore();}
+    for(const pt of level.items||[])if(!pt.taken)keyShape(pt.x,pt.y);
+    for(const pt of level.targets||[]){
+      const on=(level.boxes||[]).some(box=>Math.hypot(box.x-pt.x,box.y-pt.y)<39);
+      pad(pt.x,pt.y,on,'BOX');
+    }
+    for(const box of level.boxes||[])crate(box.x,box.y);
+    wall({x:815,y:65,w:25,h:150});wall({x:815,y:325,w:25,h:150});
+    drawGate(828,215,110,!!s.latch);exitDoor(!!s.latch);
   }
-  if(s.stage<30){wall(EXIT_TOP);wall(EXIT_BOTTOM);if(!s.latch && (s.stage%3!==1||!s.keyTaken))drawGate(828,222,108,false);else drawGate(828,222,108,true);exitDoor(s.latch||s.keyTaken);}
-  if((s.players||[]).length<2&&s.stage<30){roundRect(275,459,410,29,11,'#3c5e48d9');text('2인 협동 구간',480,473,14,'#f8ffe9');}
+  if((s.players||[]).length<2&&s.stage<30){
+    roundRect(275,459,410,29,11,'#3c5e48d9');text('CO-OP',480,473,14,'#f8ffe9');
+  }
   }catch(err){console.error('scene render',err);}
   // Always draw avatars last. A scene drawing error must not hide teammates.
   const players=Array.isArray(state?.players)?state.players:[];
@@ -443,9 +434,16 @@ function drawScene(t){
     finally{ctx.restore();}
   }
   const own=players.find(p=>String(p.id)===String(myId));
+  if(own){
+    if(!localVisual)localVisual={x:Number(own.x),y:Number(own.y)};
+    else{
+      localVisual.x+=(Number(own.x)-localVisual.x)*.35;
+      localVisual.y+=(Number(own.y)-localVisual.y)*.35;
+    }
+  }
   const pos=localVisual||own||{x:142,y:247};
   ctx.save();
-  try{kiwi({id:myId,x:pos.x,y:pos.y,name:playerName||own?.name||'KIWI',color:own?.color||'#d4b488'},t);}
+  try{kiwi({id:myId,x:pos.x,y:pos.y,name:own?.name||playerName||'KIWI',color:own?.color||'#d4b488'},t);}
   catch(e){console.error('local avatar',e);}
   finally{ctx.restore();}
 }
