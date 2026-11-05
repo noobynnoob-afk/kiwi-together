@@ -9,42 +9,57 @@ const WebSocket = require('ws');
 
 const PORT = Number(process.env.PORT) || 10000;
 const WIDTH = 960, HEIGHT = 540;
-const TOTAL_STAGES = 30;
-const mode = stage => stage % 10;
-const LEVELS = Array.from({length:30},(_,i)=>{
- const variant=Math.floor(i/10), kind=i%10;
- const shift=variant*38;
- const left=200+shift, right=650-shift;
- const layout=[
-  {title:'동시 발판',pads:[{x:left,y:160},{x:left,y:382}],need:'pads'},
-  {title:'열쇠 수색',items:[{x:right,y:270}],need:'items'},
-  {title:'상자 정렬',crates:[{x:350,y:185},{x:350,y:370}],targets:[{x:640,y:185},{x:640,y:370}],need:'crates'},
-  {title:'수집 경로',items:[{x:260,y:135},{x:460,y:385},{x:720,y:145}],need:'items'},
-  {title:'갈림길',pads:[{x:290,y:155},{x:630,y:382}],need:'pads'},
-  {title:'네 개의 별',items:[{x:250,y:145},{x:430,y:400},{x:580,y:140},{x:740,y:390}],need:'items'},
-  {title:'중앙 상자',crates:[{x:340,y:270}],targets:[{x:670,y:270}],need:'crates'},
-  {title:'양쪽 스위치',pads:[{x:230,y:380},{x:715,y:160}],need:'pads'},
-  {title:'구석의 조각',items:[{x:180,y:110},{x:760,y:110},{x:180,y:425},{x:760,y:425}],need:'items'},
-  {title:'마지막 협동',pads:[{x:310,y:175},{x:660,y:365}],items:[{x:490,y:270}],need:'both'}
- ][kind];
- const walls=[
-  [{x:420,y:72,w:26,h:125},{x:420,y:335,w:26,h:140}],
-  [{x:480,y:72,w:24,h:145},{x:480,y:335,w:24,h:140}],
-  [{x:460,y:240,w:120,h:45}],
-  [{x:340,y:195,w:26,h:155},{x:600,y:195,w:26,h:155}],
-  [{x:450,y:72,w:25,h:170},{x:450,y:320,w:25,h:155}],
-  [{x:350,y:215,w:110,h:24},{x:540,y:310,w:110,h:24}],
-  [{x:480,y:72,w:24,h:130},{x:480,y:350,w:24,h:125}],
-  [{x:360,y:230,w:24,h:130},{x:600,y:130,w:24,h:130}],
-  [{x:350,y:230,w:25,h:110},{x:600,y:230,w:25,h:110}],
-  [{x:460,y:72,w:26,h:140},{x:460,y:340,w:26,h:135}]
- ][kind].map(w=>({...w}));
- if(variant===1)walls.forEach(w=>{w.y=Math.max(75,Math.min(460-w.h,w.y+34));});
- if(variant===2)walls.forEach(w=>{w.x=Math.max(320,Math.min(735-w.w,w.x+55));});
- const offset=(p)=>({x:Math.min(785,p.x+variant*18),y:Math.max(110,Math.min(420,p.y+(variant===1?18:variant===2?-17:0)))});
- return {title:layout.title+' '+(variant+1),need:layout.need,walls,
-  pads:(layout.pads||[]).map(offset),items:(layout.items||[]).map(offset),
-  crates:(layout.crates||[]).map(offset),targets:(layout.targets||[]).map(offset)};
+const TOTAL_STAGES = 60;
+// 60 authored stage specifications: 12 puzzle combinations across 5 biomes.
+// Each stage has its own goal arrangement and obstacle topology.
+const BIOMES = ['ROOM','FOREST','RUINS','CRYSTAL','ABYSS','SKY'];
+const STAGE_NAMES = [
+ 'First Contact','Twin Signals','Hidden Key','Cargo Route','Split Decision','Four Corners','Stone Passage','Lock Sequence','Crossing','The Breaking Room',
+ 'Forest Entrance','Mossy Bridges','Root Lock','Fireflies','Fallen Trunks','Hollow Grove','Amber Trail','Moonlit Clearing','Ancient Tree','Deepwood Gate',
+ 'Sunken Atrium','Ruin Seals','Buried Key','Broken Statues','Echo Chamber','Rotating Paths','The Aqueduct','Temple Vault','Golden Hall','Guardian Door',
+ 'Crystal Shore','Prism Relay','Shattered Glass','Blue Cavern','Frozen Circuit','Mirror Path','Gem Lattice','Northern Lights','Resonance','Crystal Heart',
+ 'Ashen Steps','Ember Signals','Lava Bridge','Furnace Key','Red Chamber','Obsidian Maze','Molten Cargo','Volcanic Core','The Rift','Abyss Door',
+ 'Cloud Gardens','Floating Isles','Sky Signals','Star Fragments','Wind Temple','Astral Lock','The Last Cargo','Celestial Ring','Final Trial','Beyond the Door'];
+const pt=(x,y)=>({x,y});
+const rr=(x,y,w,h)=>({x,y,w,h});
+const LEVELS=Array.from({length:TOTAL_STAGES},(_,i)=>{
+ const zone=Math.floor(i/10),variant=i%10, pattern=i%12;
+ const shift=(i*17)%67-33, swing=(i*29)%75-37;
+ const pads=[],items=[],crates=[],targets=[],walls=[];
+ // Distinct, navigable lane arrangements; left and right remain traversable.
+ if(variant===0)walls.push(rr(390,75,24,105),rr(390,360,24,110));
+ if(variant===1)walls.push(rr(510,75,24,125),rr(510,335,24,135));
+ if(variant===2)walls.push(rr(395,220,105,22));
+ if(variant===3)walls.push(rr(340,90,22,110),rr(590,345,22,115));
+ if(variant===4)walls.push(rr(430,75,24,105),rr(430,365,24,105));
+ if(variant===5)walls.push(rr(320,225,95,22),rr(580,295,90,22));
+ if(variant===6)walls.push(rr(470,75,22,110),rr(470,365,22,105));
+ if(variant===7)walls.push(rr(330,100,24,95),rr(590,355,24,100));
+ if(variant===8)walls.push(rr(390,225,24,90),rr(550,225,24,90));
+ if(variant===9)walls.push(rr(450,75,24,135),rr(450,335,24,135));
+ // Goals stay outside walls, in deliberately varied accessible positions.
+ const left=pt(220+shift,155+swing/3),lower=pt(220-shift/2,385-swing/3);
+ const right=pt(715-shift,160-swing/3),bottom=pt(715+shift/2,382+swing/3);
+ const mid=pt(470+shift/2,270+swing/2);
+ const gems=[left,right,lower,bottom,mid];
+ let need='items';
+ switch(pattern){
+ case 0:pads.push(left,lower);need='pads';break;
+ case 1:items.push(right);break;
+ case 2:crates.push(pt(300,270));targets.push(pt(680,270));need='crates';break;
+ case 3:items.push(left,right,bottom);break;
+ case 4:pads.push(left,right);need='pads';break;
+ case 5:items.push(left,right,lower,bottom);break;
+ case 6:crates.push(pt(285,185),pt(285,355));targets.push(pt(700,185),pt(700,355));need='crates';break;
+ case 7:pads.push(lower,bottom);need='pads';break;
+ case 8:items.push(left,lower,right,bottom);break;
+ case 9:pads.push(left,lower);items.push(right);need='both';break;
+ case 10:crates.push(pt(290,270));targets.push(pt(700,270));items.push(lower);need='cargo';break;
+ case 11:pads.push(left,right);items.push(bottom);need='both';break;
+ }
+ // Avoid a blocked target or item when near center barriers.
+ return {title:STAGE_NAMES[i],biome:BIOMES[zone],index:i,need,walls,pads,items,crates,targets,
+   difficulty:1+Math.floor(i/10),breakout:i===9};
 });
 const SPEED = 188, RADIUS = 19;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -164,7 +179,7 @@ function tick(dt){
   const boxesOK=level.targets.every(t=>room.crates.some(c=>Math.hypot(c.x-t.x,c.y-t.y)<39));
   // Once the cooperative puzzle is solved, keep the exit unlocked.
   // Players can step off their switches and walk to the door.
-  const solved=level.need==='pads'?padsOK:level.need==='items'?itemsOK:level.need==='crates'?boxesOK:padsOK&&itemsOK;
+  const solved=level.need==='pads'?padsOK:level.need==='items'?itemsOK:level.need==='crates'?boxesOK:level.need==='cargo'?boxesOK&&itemsOK:padsOK&&itemsOK;
   if(solved)room.latch=true;
   // Every connected player must reach the exit before advancing.
   const party=[...room.players.values()];
@@ -178,7 +193,7 @@ function packState(room){
  const players=[...room.players.values()].map(p=>({id:p.id,name:p.name,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,color:p.color,look:p.dx<0?-1:1}));
  const level=LEVELS[room.stage];
  return {type:'state',stage:room.stage,players,latch:room.latch,
-  level:level?{title:level.title,need:level.need,walls:level.walls,pads:level.pads,
+  level:level?{title:level.title,biome:level.biome,difficulty:level.difficulty,breakout:level.breakout,need:level.need,walls:level.walls,pads:level.pads,
    items:level.items.map((p,i)=>({...p,taken:room.collected.includes(i)})),
    targets:level.targets,boxes:room.crates}:null,
   seconds:Math.floor((Date.now()-room.startedAt)/1000)};

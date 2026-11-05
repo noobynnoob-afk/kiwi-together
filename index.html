@@ -211,8 +211,8 @@ $('copyBtn').addEventListener('click',async()=>{
 $('resetBtn').addEventListener('click',()=>{if(confirm('퍼즐을 초기화하시겠습니까?'))message('reset');});
 $('replayBtn').addEventListener('click',()=>message('reset'));
 function renderHUD(s){
-  const complete=s.stage>=30;
-  $('stageTag').textContent=complete?'COMPLETE':`STAGE ${String(s.stage+1).padStart(2,'0')} / 30`;
+  const complete=s.stage>=60;
+  $('stageTag').textContent=complete?'COMPLETE':`STAGE ${String(s.stage+1).padStart(2,'0')} / 60`;
   $('stageTitle').textContent=complete?'ALL CLEAR':(s.level?.title||'ESCAPE');
   $('stageDesc').textContent='';
   $('playerCount').textContent=(s.players||[]).length+' / 4';
@@ -302,21 +302,38 @@ function roundRect(x,y,w,h,r,fill,stroke,lw=1){
 }
 function text(str,x,y,size,color='#274c3b',align='center',weight=900){ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='middle';ctx.font=weight+' '+size+'px system-ui, sans-serif';ctx.fillText(str,x,y);}
 function drawFlower(x,y,c='#f4fbdd',scale=1){ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);for(let i=0;i<5;i++){ctx.rotate(Math.PI*2/5);ctx.beginPath();ctx.ellipse(0,-6,3,6,0,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();}ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fillStyle='#eece74';ctx.fill();ctx.restore();}
-function floor(){
-  ctx.fillStyle='#c9debe';ctx.fillRect(0,0,960,540);
-  for(let iy=0;iy<12;iy++)for(let ix=0;ix<21;ix++){
-    let x=ix*48,y=iy*48;
-    ctx.fillStyle=(ix+iy)%2?'#dceacb':'#d3e4c5';ctx.fillRect(x,y,48,48);
-    if((ix*7+iy*11)%9===0){ctx.strokeStyle='#bad2ad';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+17,y+30);ctx.lineTo(x+19,y+20);ctx.moveTo(x+19,y+26);ctx.lineTo(x+25,y+23);ctx.stroke();}
-  }
-  for(let i=0;i<16;i++){
-    const x=65+(i*139)%820,y=83+(i*187)%365;
-    if(i%2===0)drawFlower(x,y,'#f8f5dc',.6);else drawFlower(x,y,'#ecf4b6',.55);
-  }
-  ctx.fillStyle='#a1be9e';ctx.fillRect(0,0,960,51);ctx.fillRect(0,487,960,53);ctx.fillRect(0,0,50,540);ctx.fillRect(908,0,52,540);
-  // Decorative dotted stone border
-  ctx.fillStyle='#7fa58b';for(let x=60;x<920;x+=29){ctx.beginPath();ctx.arc(x,60,2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x,480,2,0,Math.PI*2);ctx.fill();}
-  roundRect(56,67,848,411,18,null,'#88b09a',3);
+function floor(biome='ROOM',stage=0,t=0){
+ const palettes={ROOM:['#b9cbb3','#dbe4d1','#97ac99'],FOREST:['#203e32','#355b3f','#162e2a'],RUINS:['#9f9984','#c4bda3','#686a61'],CRYSTAL:['#1c3750','#365f77','#152b47'],ABYSS:['#402e35','#664146','#281e29'],SKY:['#809eaa','#c7d7c7','#5c8196']};
+ const c=palettes[biome]||palettes.ROOM;
+ ctx.fillStyle=c[0];ctx.fillRect(0,0,960,540);
+ const grad=ctx.createLinearGradient(0,0,0,540);grad.addColorStop(0,c[1]);grad.addColorStop(1,c[0]);ctx.fillStyle=grad;ctx.fillRect(48,51,864,438);
+ const seed=(n)=>{const v=Math.sin(n*91.17+stage*24.83)*43758.5453;return v-Math.floor(v)};
+ for(let i=0;i<95;i++){
+   const x=75+seed(i+11)*805,y=75+seed(i+900)*390;
+   if(biome==='FOREST'){
+     ctx.fillStyle=i%3?'#31553c':'#467349';ctx.beginPath();ctx.arc(x,y,6+seed(i+2)*13,0,Math.PI*2);ctx.fill();
+     if(i%5===0){ctx.fillStyle='#e2ef9e';ctx.beginPath();ctx.arc(x+Math.sin(t/700+i)*5,y,2,0,7);ctx.fill();}
+   }else if(biome==='CRYSTAL'){
+     ctx.fillStyle=i%2?'#71b5d1aa':'#d6baff77';ctx.beginPath();ctx.moveTo(x,y-8);ctx.lineTo(x+6,y);ctx.lineTo(x,y+8);ctx.lineTo(x-6,y);ctx.fill();
+   }else if(biome==='ABYSS'){
+     ctx.fillStyle=i%2?'#b36c5688':'#ebc17c66';ctx.beginPath();ctx.arc(x,y,2+seed(i+7)*4,0,7);ctx.fill();
+   }else if(biome==='SKY'){
+     ctx.fillStyle='#e7f5ec80';ctx.beginPath();ctx.ellipse(x,y,15+seed(i+1)*16,5,0,0,7);ctx.fill();
+   }else if(biome==='RUINS'){
+     ctx.fillStyle='#6d76634a';ctx.fillRect(x,y,10+seed(i+4)*15,4);
+   }else{if(i%3===0)drawFlower(x,y,'#f2eed1',.6);}
+ }
+ // Side decoration and clear gameplay boundary.
+ ctx.fillStyle=c[2];ctx.fillRect(0,0,960,51);ctx.fillRect(0,487,960,53);ctx.fillRect(0,0,50,540);ctx.fillRect(908,0,52,540);
+ ctx.strokeStyle='#ffffff3a';ctx.lineWidth=3;ctx.strokeRect(55,65,850,415);
+ if(biome==='FOREST'){
+   for(let i=0;i<14;i++){
+     const x=35+i*69, y=i%2?505:37;
+     ctx.fillStyle='#263c2b';ctx.fillRect(x-5,y-25,10,40);
+     ctx.fillStyle=i%2?'#426f45':'#2b583b';ctx.beginPath();ctx.arc(x,y-23,24,0,7);ctx.fill();
+     ctx.fillStyle='#6c9756';ctx.beginPath();ctx.arc(x-8,y-31,11,0,7);ctx.fill();
+   }
+ }
 }
 function wall(w){
   roundRect(w.x+4,w.y+5,w.w,w.h,5,'#6b827b');
@@ -399,12 +416,22 @@ function drawScene(t){
     localVisual.y=Math.max(60,Math.min(490,localVisual.y+vy/length*185*elapsedSec));
   }
   if(!state){ctx.fillStyle='#d3e4c5';ctx.fillRect(0,0,960,540);kiwi({id:myId,x:localVisual?.x??142,y:localVisual?.y??247,name:playerName,color:'#d4b488'},t);return;}
-  try{ctx.clearRect(0,0,960,540);floor();
+  try{ctx.clearRect(0,0,960,540);floor(state?.level?.biome||'ROOM',state?.stage||0,t);
   const s=state;
+  // The tenth room breaks open into the forest; the following level is fully outdoors.
+  if(s.stage===9){
+    ctx.save();ctx.strokeStyle='#f5ead0';ctx.lineWidth=3;
+    const shake=Math.sin(t/140)*3;
+    for(let j=0;j<12;j++){
+      const x=300+j*31+shake,y=52+(j%4)*32;
+      ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+18,y+30);ctx.lineTo(x+6,y+51);ctx.stroke();
+    }
+    ctx.fillStyle='#254c38';ctx.beginPath();ctx.moveTo(350,52);ctx.lineTo(510,52);ctx.lineTo(480,120);ctx.lineTo(400,140);ctx.fill();ctx.restore();
+  }
   // ground art/landmarks
   roundRect(71,243,110,73,20,'#eaf0c9bb');
   text('START',124,279,16,'#86a28c');
-  if(s.stage>=30){text('ALL CLEAR',480,260,44,'#38664a');}
+  if(s.stage>=60){text('ALL CLEAR',480,260,44,'#38664a');}
   else if(s.level){
     const level=s.level;
     for(const w of level.walls||[])wall(w);
@@ -421,7 +448,7 @@ function drawScene(t){
     wall({x:815,y:65,w:25,h:150});wall({x:815,y:325,w:25,h:150});
     drawGate(828,215,110,!!s.latch);exitDoor(!!s.latch);
   }
-  if((s.players||[]).length<2&&s.stage<30){
+  if((s.players||[]).length<2&&s.stage<60){
     roundRect(275,459,410,29,11,'#3c5e48d9');text('CO-OP',480,473,14,'#f8ffe9');
   }
   }catch(err){console.error('scene render',err);}
