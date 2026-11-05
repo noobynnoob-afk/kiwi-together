@@ -103,7 +103,7 @@ function resetStage(room,stage=room.stage){
  room.stage=stage;room.startedAt=Date.now();room.latch=false;room.keyTaken=false;room.keyOwner=null;
  const level=LEVELS[stage];
  room.crates=level?level.crates.map(p=>({...p})):[];
- room.collected=[];
+ room.collected=[];room.guardianX=2080;room.endingStart=0;
  let i=0;for(const p of room.players.values()){p.x=142+(i%2)*56;p.y=247+Math.floor(i/2)*58;p.dx=0;p.dy=0;i++;}
 }
 function createRoom(){
@@ -113,6 +113,7 @@ function createRoom(){
 }
 function getWalls(room){
  const level=LEVELS[room.stage];if(!level)return [];
+ if(room.stage===59)return [];
  const walls=level.walls.slice();
  walls.push(EXIT_TOP,EXIT_BOTTOM);
  if(!room.latch)walls.push(EXIT_GATE);
@@ -128,6 +129,12 @@ function occupied(room,point,r=34){
 }
 function plateOccupied(room,point,r){return occupied(room,point,r).length>0;}
 function blocked(room,x,y,r,ignoreCrate=-1){
+  if(room.stage===59){
+    if(x-r<55||x+r>2590||y-r<160||y+r>390)return true;
+    if(!room.endingStart && x+r>room.guardianX-66 && x<room.guardianX+50)return true;
+    if(!room.endingStart && x+r>2420)return true;
+    return false;
+  }
   if(x-r<55||x+r>905||y-r<72||y+r>479) return true;
   for(const w of getWalls(room))if(circleRect(x,y,r,w))return true;
   if(room.crates.length){
@@ -164,6 +171,26 @@ function tryMove(room,p,dx,dy){
 function tick(dt){
  for(const room of rooms.values()){
   const level=LEVELS[room.stage];if(!level)continue;
+  if(room.stage===59){
+    const party=[...room.players.values()];
+    if(!room.endingStart){
+      for(const p of party){
+        const len=Math.max(1,Math.hypot(p.dx,p.dy));
+        tryMove(room,p,p.dx/len*SPEED*dt,p.dy/len*SPEED*dt);
+      }
+      const pushers=party.filter(p=>p.dx>0.2 && p.x>=room.guardianX-115 &&
+        p.x<=room.guardianX-55 && Math.abs(p.y-270)<100);
+      if(pushers.length>=2){
+        room.guardianX=Math.min(2330,room.guardianX+48*dt);
+        for(const p of pushers)p.x=Math.max(p.x,room.guardianX-85);
+      }
+      if(room.guardianX>=2330){
+        room.endingStart=Date.now();room.latch=true;
+        announce(room,'THE LAST DOOR');
+      }
+    }
+    continue;
+  }
   for(const p of room.players.values()){
    const length=Math.hypot(p.dx,p.dy);
    if(length>0)tryMove(room,p,p.dx/Math.max(1,length)*SPEED*dt,p.dy/Math.max(1,length)*SPEED*dt);
@@ -192,7 +219,7 @@ function tick(dt){
 function packState(room){
  const players=[...room.players.values()].map(p=>({id:p.id,name:p.name,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,color:p.color,look:p.dx<0?-1:1}));
  const level=LEVELS[room.stage];
- return {type:'state',stage:room.stage,players,latch:room.latch,
+ return {type:'state',stage:room.stage,players,latch:room.latch,guardian:room.stage===59?{x:room.guardianX,endingStart:room.endingStart,elapsed:room.endingStart?(Date.now()-room.endingStart)/1000:0}:null,
   level:level?{title:level.title,biome:level.biome,difficulty:level.difficulty,breakout:level.breakout,need:level.need,walls:level.walls,pads:level.pads,
    items:level.items.map((p,i)=>({...p,taken:room.collected.includes(i)})),
    targets:level.targets,boxes:room.crates}:null,

@@ -218,7 +218,7 @@ function renderHUD(s){
   $('playerCount').textContent=(s.players||[]).length+' / 4';
   const seconds=Number(s.seconds)||0;
   $('timer').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
-  $('winPanel').classList.toggle('hidden',!complete);
+  $('winPanel').classList.toggle('hidden',true);
 }
 function addSystem(txt){
   const el=document.createElement('div');el.className='systemMessage';el.textContent=txt;appendLog(el);
@@ -250,6 +250,15 @@ $('mobileEmote').addEventListener('click',()=>message('emote',{index:0}));
 const movementKeys={'w':'up','arrowup':'up','s':'down','arrowdown':'down','a':'left','arrowleft':'left','d':'right','arrowright':'right'};
 window.addEventListener('keydown',e=>{
   if(!joined)return;
+  if(state?.stage===59){
+    drawGuardianEnding(state,t);
+    const ending=!!state.guardian?.endingStart;
+    const hidden=ending&&state.guardian.elapsed>=7;
+    for(const sel of ['.topbar','.stageBar','.hint','.chatPanel','#joystick','#mobileEmote','#mobileChat']){
+      const el=document.querySelector(sel);if(el)el.style.visibility=hidden?'hidden':'';
+    }
+    return;
+  }
   const target=e.target;
   if(target&&(['INPUT','TEXTAREA'].includes(target.tagName)||target.isContentEditable)){
     if(e.key==='Escape'){target.blur();toggleChat(false);}return;
@@ -403,6 +412,84 @@ function kiwi(p,elapsed){
     ctx.font='800 14px system-ui';const width=Math.min(260,Math.max(72,ctx.measureText(value).width+24));
     roundRect(x-width/2,y-100,width,30,10,'#fffef2','#95ba9d',2);text(value,x,y-84,13,'#3d6447');
   }
+}
+function drawGuardianEnding(s,t){
+ const g=s.guardian||{x:2080,elapsed:0,endingStart:0};
+ const self=(s.players||[]).find(p=>String(p.id)===String(myId));
+ const focus=self?Number(self.x):142;
+ const camera=Math.max(0,Math.min(1650,focus-350));
+ ctx.save();ctx.fillStyle='#101c24';ctx.fillRect(0,0,960,540);
+ ctx.translate(-camera,0);
+ const grad=ctx.createLinearGradient(0,0,0,540);
+ grad.addColorStop(0,'#101820');grad.addColorStop(.5,'#25313b');grad.addColorStop(1,'#101a20');
+ ctx.fillStyle=grad;ctx.fillRect(0,0,2700,540);
+ for(let x=80;x<2650;x+=190){
+  ctx.fillStyle='#344047';ctx.fillRect(x,68,33,345);
+  ctx.fillStyle='#465058';ctx.fillRect(x-12,65,57,25);
+  ctx.fillStyle='#252f36';ctx.fillRect(x-15,396,63,25);
+  ctx.strokeStyle='#71808655';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+12,100);ctx.lineTo(x+12,365);ctx.stroke();
+ }
+ ctx.fillStyle='#27343b';ctx.fillRect(0,416,2700,124);
+ for(let x=0;x<2650;x+=65){ctx.fillStyle='#53616b55';ctx.fillRect(x,423,55,3)}
+ // Monumental door behind the guardian.
+ ctx.fillStyle='#0a0f17';ctx.fillRect(2380,88,160,330);
+ ctx.strokeStyle='#8b98a4';ctx.lineWidth=15;ctx.strokeRect(2380,88,160,330);
+ ctx.fillStyle='#455563';ctx.fillRect(2390,99,140,319);
+ ctx.strokeStyle='#718593';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(2460,100);ctx.lineTo(2460,415);ctx.stroke();
+ const elapsed=g.elapsed||0;
+ if(g.endingStart){
+  const spread=Math.min(1,elapsed/3);
+  ctx.fillStyle='#fffbea';ctx.shadowBlur=85;ctx.shadowColor='#ffffff';
+  ctx.fillRect(2460-120*spread,104,240*spread,312);ctx.shadowBlur=0;
+  for(let i=0;i<24;i++){
+   const a=i*Math.PI*2/24;
+   ctx.strokeStyle='rgba(255,250,208,'+Math.min(.8,spread*.8)+')';ctx.lineWidth=2+i%4;
+   ctx.beginPath();ctx.moveTo(2460,258);ctx.lineTo(2460+Math.cos(a)*600*spread,258+Math.sin(a)*350*spread);ctx.stroke();
+  }
+ }
+ // Guardian: a massive ancient statue, not an attackable boss.
+ const gx=g.x;
+ ctx.fillStyle='#171e26';ctx.beginPath();ctx.ellipse(gx,410,90,18,0,0,Math.PI*2);ctx.fill();
+ roundRect(gx-48,304,40,111,9,'#687b79','#a1aaa2',3);
+ roundRect(gx+8,304,40,111,9,'#687b79','#a1aaa2',3);
+ roundRect(gx-69,170,138,150,22,'#677b7c','#a3b2a8',5);
+ roundRect(gx-93,196,38,113,12,'#5c7375','#9caba7',3);
+ roundRect(gx+55,196,38,113,12,'#5c7375','#9caba7',3);
+ roundRect(gx-51,100,102,88,12,'#82928e','#c4c7b8',4);
+ ctx.fillStyle='#1a292e';ctx.fillRect(gx-30,134,18,9);ctx.fillRect(gx+12,134,18,9);
+ ctx.fillStyle='#c0d3c5';ctx.shadowColor='#d4eee5';ctx.shadowBlur=15;
+ ctx.fillRect(gx-28,136,13,5);ctx.fillRect(gx+15,136,13,5);ctx.shadowBlur=0;
+ ctx.strokeStyle='#a3b4a8';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(gx-40,224);ctx.lineTo(gx+40,282);ctx.moveTo(gx+40,224);ctx.lineTo(gx-40,282);ctx.stroke();
+ for(const p of s.players||[])kiwi(p,t);
+ ctx.restore();
+ if(!g.endingStart){
+  if(focus>1700){
+   roundRect(270,457,420,34,8,'#07131cbd');
+   text((s.players||[]).length<2?'WAIT FOR A FRIEND':'PUSH TOGETHER →',480,475,17,'#e9e9d9');
+  }
+  return;
+ }
+ // White-out, then a nostalgic sequence of earlier worlds.
+ const white=Math.max(0,Math.min(1,(elapsed-1.3)/3.5));
+ ctx.fillStyle='rgba(255,255,250,'+white+')';ctx.fillRect(0,0,960,540);
+ if(elapsed>7){
+  const scenes=[['ROOM','#b9cbb3','#6e8d83'],['FOREST','#244b37','#75a46b'],['RUINS','#7c7765','#c4bda3'],['CRYSTAL','#173952','#69c6db'],['ABYSS','#30212c','#e18d65'],['SKY','#7195a7','#e0e7d8']];
+  const index=Math.min(5,Math.floor((elapsed-7)/2.3));
+  const [name,bg,fg]=scenes[index];
+  ctx.fillStyle=bg;ctx.fillRect(0,0,960,540);
+  ctx.fillStyle=fg;
+  for(let i=0;i<24;i++){
+   const x=(i*149+53)%960,y=130+(i*79)%340;
+   if(name==='FOREST'){ctx.beginPath();ctx.arc(x,y,25+i%4*7,0,7);ctx.fill();}
+   else if(name==='CRYSTAL'){ctx.beginPath();ctx.moveTo(x,y-26);ctx.lineTo(x+16,y);ctx.lineTo(x,y+26);ctx.lineTo(x-16,y);ctx.fill();}
+   else if(name==='SKY'){ctx.beginPath();ctx.ellipse(x,y,44,12,0,0,7);ctx.fill();}
+   else ctx.fillRect(x,y,30+i%4*15,12+i%3*12);
+  }
+  ctx.fillStyle='rgba(7,15,18,.45)';ctx.fillRect(0,0,960,540);
+  ctx.globalAlpha=Math.min(1,(elapsed-7)/3);
+  text('the end',480,266,76,'#fffdf3');ctx.globalAlpha=1;
+  // No HUD, chat, joystick, or buttons in the ending.
+ }
 }
 function drawScene(t){
   requestAnimationFrame(drawScene);
